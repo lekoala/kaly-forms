@@ -1,0 +1,7 @@
+parameters:
+  level: max
+  treatPhpDocTypesAsCertain: false
+  editorUrlTitle: '%%relFile%%:%%line%%'
+  editorUrl: 'vscode://file/%%file%%:%%line%%'
+includes:
+  - phar://phpstan.phar/conf/bleedingEdge.neon

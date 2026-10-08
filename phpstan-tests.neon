@@ -1,0 +1,6 @@
+# Static analysis for tests and examples, at the same level as src (max).
+#
+# Kept separate from phpstan.neon on purpose: analysing tests together
+# with src could change how src resolves namespaced test helpers.
+includes:
+  - phpstan.neon

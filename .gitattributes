@@ -1,0 +1,17 @@
+* text=auto eol=lf
+
+# assets/ stays in the distributed package (optional progressive enhancement JS).
+
+# Not part of the distributed package
+/.github export-ignore
+/docs export-ignore
+/examples export-ignore
+/tests export-ignore
+/.editorconfig export-ignore
+/.gitattributes export-ignore
+/.gitignore export-ignore
+/AGENTS.md export-ignore
+/mago.toml export-ignore
+/phpstan.neon export-ignore
+/phpstan-tests.neon export-ignore
+/phpunit.xml.dist export-ignore

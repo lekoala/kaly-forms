@@ -1,0 +1,67 @@
+# Mago toolchain config for kaly-forms.
+# Mirrors Kaly formatter/linter settings; guard is minimal on purpose:
+# single namespace Kaly\Forms\, no layered architecture to enforce yet.
+php-version = "8.3.0"
+
+[source]
+workspace = "."
+paths = ["src", "tests", "examples"]
+includes = []
+excludes = []
+
+[formatter]
+print-width = 140
+tab-width = 4
+use-tabs = false
+
+[linter]
+integrations = ["phpunit"]
+
+[linter.rules]
+ambiguous-function-call = { enabled = false }
+literal-named-argument = { enabled = false }
+assert-description = { enabled = false }
+assertion-style = { style = "this" }
+strict-assertions = { enabled = false }
+single-class-per-file = { enabled = false }
+excessive-parameter-list = { enabled = false }
+no-empty = { enabled = false }
+no-error-control-operator = { enabled = false }
+no-isset = { enabled = false }
+no-ini-set = { enabled = false }
+no-shorthand-ternary = { enabled = false }
+inline-variable-return = { enabled = false }
+# Disabled: Condition::matches() uses loose comparison on purpose —
+# submitted values arrive as strings while expected may be int/bool.
+identity-comparison = { enabled = false }
+# Disabled: examples are runnable scripts, not PSR-4 autoloaded classes
+# (src naming is already enforced by Composer autoloading itself).
+file-name = { enabled = false }
+cyclomatic-complexity = { threshold = 150 }
+kan-defect = { threshold = 12 }
+too-many-methods = { threshold = 80 }
+too-many-properties = { threshold = 50 }
+halstead = { effort-threshold = 12000, difficulty-threshold = 30 }
+
+[analyzer]
+find-unused-definitions = true
+find-unused-expressions = false
+analyze-dead-code = false
+memoize-properties = true
+allow-possibly-undefined-array-keys = true
+check-throws = false
+check-missing-override = false
+find-unused-parameters = false
+strict-list-index-checks = false
+no-boolean-literal-comparison = false
+check-missing-type-hints = false
+register-super-globals = true
+
+[guard]
+mode = "perimeter"
+
+[guard.perimeter]
+# Single-namespace library: no layered restrictions yet.
+# The only rule is implicit: examples/tests are consumers of src, never the reverse.
+# (A deny-from on Kaly\Forms\Tests\** is not expressible here because tests
+# share the Kaly\Forms\** prefix with src.)
