@@ -99,3 +99,7 @@ A typical profile is mostly shared defaults:
 For example, an Actual CSS theme can decide label/help/error/control classes and invalid-state attributes, while a Bootstrap integration additionally overrides the checkbox and group renderers for their specific structures. Both ship as `RenderProfile` values; the core never knows these frameworks.
 
 Semantic application widgets can still use custom `Field` types where the control itself is meaningfully different.
+
+## Example integrations
+
+- [`integrations/filepond.md`](integrations/filepond.md) — FilePond v5 upload enhancement (sync + async) over the same `FileField` definition.

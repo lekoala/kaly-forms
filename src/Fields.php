@@ -415,13 +415,16 @@ final class Fields
         );
     }
 
-    /** @param array<string,string|int|float|bool|null> $attributes */
+    /**
+     * @param string|list<string>|null $accept
+     * @param array<string,string|int|float|bool|null> $attributes
+     */
     public function file(
         string $name,
         ?string $label = null,
         ?string $help = null,
         bool $required = false,
-        ?string $accept = null,
+        string|array|null $accept = null,
         bool $multiple = false,
         array $attributes = [],
         ?Condition $visibleWhen = null,

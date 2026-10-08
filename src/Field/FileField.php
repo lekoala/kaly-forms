@@ -14,17 +14,23 @@ use Kaly\Forms\Validation\Required;
  */
 final class FileField extends Field
 {
-    /** @param array<string,string|int|float|bool|null> $attributes */
+    /**
+     * @param string|list<string>|null $accept
+     * @param array<string,string|int|float|bool|null> $attributes
+     */
     public function __construct(
         string $name,
         ?string $label = null,
         ?string $help = null,
         bool $required = false,
-        public readonly ?string $accept = null,
+        string|array|null $accept = null,
         public readonly bool $multiple = false,
         array $attributes = [],
         ?Condition $visibleWhen = null,
     ) {
         parent::__construct($name, $label, $help, $attributes, $required ? [new Required()] : [], $visibleWhen);
+        $this->accept = is_array($accept) ? implode(',', $accept) : $accept;
     }
+
+    public readonly ?string $accept;
 }

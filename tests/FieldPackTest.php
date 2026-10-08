@@ -4,12 +4,19 @@ declare(strict_types=1);
 
 namespace Kaly\Forms\Tests;
 
+use Kaly\Forms\Field\FileField;
 use Kaly\Forms\Field\OptionGroup;
 use Kaly\Forms\Fields;
 use Kaly\Forms\FormFactory;
 use Kaly\Forms\FormState;
+use Kaly\Forms\Html;
 use Kaly\Forms\Node\Fieldset;
+use Kaly\Forms\Node\FormNode;
 use Kaly\Forms\Node\Group;
+use Kaly\Forms\Render\DefaultTheme;
+use Kaly\Forms\Render\NodeRendererRegistry;
+use Kaly\Forms\Render\RenderContext;
+use Kaly\Forms\Render\RenderProfile;
 use Kaly\Forms\Validation\StructuralValidator;
 use PHPUnit\Framework\TestCase;
 
@@ -184,5 +191,46 @@ final class FieldPackTest extends TestCase
             enctype: 'multipart/form-data',
         );
         $this->assertStringContainsString('enctype="multipart/form-data"', (string) $forced);
+    }
+
+    public function testAcceptListNormalizesToString(): void
+    {
+        $field = (new Fields())->file('documents', accept: ['image/*', 'application/pdf']);
+
+        $this->assertSame('image/*,application/pdf', $field->accept);
+    }
+
+    public function testSameDefinitionRendersPlainAndFilePond(): void
+    {
+        $fields = new Fields();
+        $children = [$fields->file('documents', label: 'Documents', multiple: true)];
+
+        $plain = (string) (new FormFactory())->create(name: 'a', action: '/a', children: $children);
+
+        $renderers = NodeRendererRegistry::defaults();
+        $renderers->register(FileField::class, static function (FormNode $node, RenderContext $context): Html {
+            $inner = NodeRendererRegistry::defaults()->render($node, $context);
+            return new Html('<file-pond>' . $inner->value() . '</file-pond>');
+        });
+        $profile = new RenderProfile(new DefaultTheme(), $renderers);
+        $enhanced = (string) (new FormFactory(profile: $profile))->create(name: 'a', action: '/a', children: $children);
+
+        $this->assertStringContainsString('<input', $plain);
+        $this->assertStringNotContainsString('<file-pond>', $plain);
+        $this->assertStringContainsString('<file-pond><div', $enhanced);
+        $this->assertStringContainsString('type="file"', $enhanced);
+    }
+
+    public function testAsyncUploadTokensStayStrings(): void
+    {
+        $fields = new Fields();
+        $children = [$fields->file('documents', label: 'Documents', multiple: true)];
+
+        $form = (new FormFactory())->create(name: 'a', action: '/a', children: $children);
+        $state = (new StructuralValidator())->validate($form, ['documents' => ['01JXYZ', '01JABC']]);
+
+        $this->assertSame(['01JXYZ', '01JABC'], $state->values()['documents']);
+        // Tokens never leak into markup: file inputs are never refilled.
+        $this->assertStringNotContainsString('01JXYZ', (string) $form->withState($state));
     }
 }

@@ -437,13 +437,16 @@ final class FieldTypes
         return new ReadonlyField(name: $name, label: $label, help: $help, attributes: $attributes, visibleWhen: $visibleWhen);
     }
 
-    /** @param array<string,string|int|float|bool|null> $attributes */
+    /**
+     * @param string|list<string>|null $accept
+     * @param array<string,string|int|float|bool|null> $attributes
+     */
     private static function fileField(
         string $name,
         ?string $label = null,
         ?string $help = null,
         bool $required = false,
-        ?string $accept = null,
+        string|array|null $accept = null,
         bool $multiple = false,
         array $attributes = [],
         ?Condition $visibleWhen = null,
