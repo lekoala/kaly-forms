@@ -19,10 +19,10 @@ final readonly class Length implements Rule
             return null;
         }
         if (!is_scalar($value) && !$value instanceof \Stringable) {
-            return null;
+            return new Violation('Invalid value', $field, 'type');
         }
 
-        $length = mb_strlen((string) $value);
+        $length = mb_strlen((string) $value, 'UTF-8');
         if ($this->min !== null && $length < $this->min) {
             return new Violation("Must contain at least {$this->min} characters", $field, 'min_length');
         }

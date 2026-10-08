@@ -155,7 +155,8 @@ final class NodeRendererRegistry
     {
         $value = $context->textValue($context->value($field));
         $out = '';
-        foreach ($field->choices as $optionValue => $label) {
+        foreach (array_values($field->choices) as $index => $label) {
+            $optionValue = array_keys($field->choices)[$index];
             $out .=
                 '<label><input'
                 . $context->attrs([
@@ -163,14 +164,15 @@ final class NodeRendererRegistry
                     'name' => $field->name,
                     'value' => $optionValue,
                     'checked' => (string) $optionValue === $value,
-                    ...$context->ruleAttributes($field),
+                    'required' => $context->radioRequired($field, $index),
+                    'data-kf-field' => $field->name,
                     ...$context->controlAttributes($field),
                 ])
                 . '> '
                 . $context->e($label)
                 . '</label>';
         }
-        return $context->fieldRow($field, $out);
+        return $context->fieldGroup($field, $out);
     }
 
     private static function renderMultipleSelectControl(MultipleSelectField $field, RenderContext $context): Html
@@ -179,8 +181,9 @@ final class NodeRendererRegistry
         $out =
             '<select'
             . $context->attrs([
-                'id' => $context->idFor($field->name),
-                'name' => $field->name,
+                'id' => $context->controlId($field),
+                'name' => $context->htmlName($field),
+                'data-kf-field' => $field->name,
                 'multiple' => true,
                 'size' => $field->size,
                 ...$context->ruleAttributes($field),
@@ -210,17 +213,17 @@ final class NodeRendererRegistry
                 '<label><input'
                 . $context->attrs([
                     'type' => 'checkbox',
-                    'name' => $field->name . '[]',
+                    'name' => $context->htmlName($field),
                     'value' => $optionValue,
                     'checked' => in_array((string) $optionValue, $selected, true),
-                    ...$context->ruleAttributes($field),
+                    'data-kf-field' => $field->name,
                     ...$context->controlAttributes($field),
                 ])
                 . '> '
                 . $context->e($label)
                 . '</label>';
         }
-        return $context->fieldRow($field, $out);
+        return $context->fieldGroup($field, $out);
     }
 
     private static function renderTimeControl(TimeField $field, RenderContext $context): Html
@@ -228,9 +231,10 @@ final class NodeRendererRegistry
         $control =
             '<input'
             . $context->attrs([
-                'id' => $context->idFor($field->name),
+                'id' => $context->controlId($field),
                 'name' => $field->name,
                 'type' => 'time',
+                'data-kf-field' => $field->name,
                 'value' => $context->textValue($context->value($field)),
                 'min' => $field->min,
                 'max' => $field->max,
@@ -246,9 +250,10 @@ final class NodeRendererRegistry
         $control =
             '<input'
             . $context->attrs([
-                'id' => $context->idFor($field->name),
+                'id' => $context->controlId($field),
                 'name' => $field->name,
                 'type' => 'datetime-local',
+                'data-kf-field' => $field->name,
                 'value' => $context->textValue($context->value($field)),
                 'min' => $field->min,
                 'max' => $field->max,
@@ -264,9 +269,10 @@ final class NodeRendererRegistry
         $control =
             '<input'
             . $context->attrs([
-                'id' => $context->idFor($field->name),
+                'id' => $context->controlId($field),
                 'name' => $field->name,
                 'type' => 'number',
+                'data-kf-field' => $field->name,
                 'value' => $context->textValue($context->value($field)),
                 'min' => $field->min,
                 'max' => $field->max,
@@ -298,11 +304,12 @@ final class NodeRendererRegistry
         $control =
             '<input'
             . $context->attrs([
-                'id' => $context->idFor($field->name),
-                'name' => $field->name,
+                'id' => $context->controlId($field),
+                'name' => $context->htmlName($field),
                 'type' => 'file',
                 'accept' => $field->accept,
                 'multiple' => $field->multiple,
+                'data-kf-field' => $field->name,
                 ...$context->ruleAttributes($field),
                 ...$context->controlAttributes($field),
             ])
@@ -315,9 +322,10 @@ final class NodeRendererRegistry
         $control =
             '<input'
             . $context->attrs([
-                'id' => $context->idFor($field->name),
+                'id' => $context->controlId($field),
                 'name' => $field->name,
                 'type' => $field->inputType,
+                'data-kf-field' => $field->name,
                 'value' => $field->inputType === 'password' ? null : $context->textValue($context->value($field)),
                 ...$context->ruleAttributes($field),
                 ...$context->controlAttributes($field),
@@ -331,9 +339,10 @@ final class NodeRendererRegistry
         $control =
             '<input'
             . $context->attrs([
-                'id' => $context->idFor($field->name),
+                'id' => $context->controlId($field),
                 'name' => $field->name,
                 'type' => 'email',
+                'data-kf-field' => $field->name,
                 'value' => $context->textValue($context->value($field)),
                 ...$context->ruleAttributes($field),
                 ...$context->controlAttributes($field),
@@ -347,9 +356,10 @@ final class NodeRendererRegistry
         $control =
             '<input'
             . $context->attrs([
-                'id' => $context->idFor($field->name),
+                'id' => $context->controlId($field),
                 'name' => $field->name,
                 'type' => 'password',
+                'data-kf-field' => $field->name,
                 ...$context->ruleAttributes($field),
                 ...$context->controlAttributes($field),
             ])
@@ -362,8 +372,9 @@ final class NodeRendererRegistry
         $control =
             '<textarea'
             . $context->attrs([
-                'id' => $context->idFor($field->name),
+                'id' => $context->controlId($field),
                 'name' => $field->name,
+                'data-kf-field' => $field->name,
                 ...$context->ruleAttributes($field),
                 ...$context->controlAttributes($field),
             ])
@@ -389,8 +400,9 @@ final class NodeRendererRegistry
         $out =
             '<select'
             . $context->attrs([
-                'id' => $context->idFor($field->name),
+                'id' => $context->controlId($field),
                 'name' => $field->name,
+                'data-kf-field' => $field->name,
                 ...$context->ruleAttributes($field),
                 ...$remoteAttrs,
                 ...$context->controlAttributes($field),
@@ -429,11 +441,12 @@ final class NodeRendererRegistry
         $control =
             '<input'
             . $context->attrs([
-                'id' => $context->idFor($field->name),
+                'id' => $context->controlId($field),
                 'name' => $field->name,
                 'type' => 'checkbox',
                 'value' => '1',
-                'checked' => filter_var($context->value($field), FILTER_VALIDATE_BOOL),
+                'data-kf-field' => $field->name,
+                'checked' => in_array($context->value($field), [true, 1, '1', 'on'], true),
                 ...$context->ruleAttributes($field),
                 ...$context->controlAttributes($field),
             ])
@@ -460,9 +473,10 @@ final class NodeRendererRegistry
         $control =
             '<input'
             . $context->attrs([
-                'id' => $context->idFor($field->name),
+                'id' => $context->controlId($field),
                 'name' => $field->name,
                 'type' => 'date',
+                'data-kf-field' => $field->name,
                 'value' => $context->textValue($context->value($field)),
                 'min' => $field->min,
                 'max' => $field->max,
@@ -476,6 +490,7 @@ final class NodeRendererRegistry
     private static function renderCustomElementControl(CustomElementField $field, RenderContext $context): Html
     {
         $value = $context->textValue($context->value($field));
+        $disabled = (bool) ($field->attributes['disabled'] ?? false);
         $out = '';
         if ($field->mirrorHiddenInput) {
             $out .=
@@ -484,7 +499,9 @@ final class NodeRendererRegistry
                     'type' => 'hidden',
                     'name' => $field->name,
                     'value' => $value,
-                    'data-kf-mirror-for' => $context->idFor($field->name),
+                    'disabled' => $disabled,
+                    'data-kf-mirror-for' => $context->controlId($field),
+                    'data-kf-field' => $field->name,
                 ])
                 . '>';
         }
@@ -492,7 +509,7 @@ final class NodeRendererRegistry
             '<'
             . $context->e($field->tag)
             . $context->attrs([
-                'id' => $context->idFor($field->name),
+                'id' => $context->controlId($field),
                 'data-kf-field' => $field->name,
                 'value' => $value,
                 ...$context->controlAttributes($field),

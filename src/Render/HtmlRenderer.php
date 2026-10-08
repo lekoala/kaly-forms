@@ -17,7 +17,7 @@ final class HtmlRenderer implements RendererInterface
     public function render(Form $form): Html
     {
         $profile = $form->profile();
-        $context = new RenderContext($form->state(), $profile->theme, $profile->renderers);
+        $context = new RenderContext($form->state(), $profile->theme, $profile->renderers, $form->name);
         $formAttrs = [
             'name' => $form->name,
             'method' => strtolower($form->method),

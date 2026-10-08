@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Kaly\Forms\Validation;
 
 use Kaly\Forms\Field\Field;
+use Kaly\Forms\Field\FileField;
 use Kaly\Forms\Form;
 use Kaly\Forms\FormState;
 use Kaly\Forms\Node\ContainerNode;
@@ -15,6 +16,10 @@ use Kaly\Forms\Violation;
 
 final class StructuralValidator
 {
+    public function __construct(
+        private readonly ?FilePresence $files = null,
+    ) {}
+
     /** @param array<string,mixed> $values */
     public function validate(Form $form, array $values): FormState
     {
@@ -26,6 +31,10 @@ final class StructuralValidator
     /**
      * Inactive subtrees skip structural rules, but submitted values are kept as-is:
      * visibility is presentation state, never an acceptance policy.
+     *
+     * FileField presence is answered by FilePresence (uploads live outside
+     * scalar values). Without an adapter, Required on a FileField is skipped
+     * and the application must validate the upload itself.
      *
      * @param list<FormNode> $nodes
      * @param array<string,mixed> $values
@@ -40,6 +49,15 @@ final class StructuralValidator
                 }
                 $value = $values[$node->name] ?? null;
                 foreach ($node->rules as $rule) {
+                    if ($node instanceof FileField && $rule instanceof Required) {
+                        if ($this->files === null) {
+                            continue;
+                        }
+                        if (!$this->files->has($node->name)) {
+                            $violations[] = new Violation('This file is required', $node->name, 'required');
+                        }
+                        continue;
+                    }
                     $violation = $rule->validate($node->name, $value, $values);
                     if ($violation !== null) {
                         $violations[] = $violation;

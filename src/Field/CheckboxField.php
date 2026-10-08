@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Kaly\Forms\Field;
 
 use Kaly\Forms\Interaction\Condition;
-use Kaly\Forms\Validation\Required;
+use Kaly\Forms\Validation\Checked;
 
 final class CheckboxField extends Field
 {
@@ -22,7 +22,7 @@ final class CheckboxField extends Field
             $label,
             $help,
             $attributes,
-            $required ? [new Required('This checkbox must be checked')] : [],
+            $required ? [new Checked('This checkbox must be checked')] : [],
             $visibleWhen,
         );
     }

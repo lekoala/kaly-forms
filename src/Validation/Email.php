@@ -14,7 +14,7 @@ final readonly class Email implements Rule
             return null;
         }
         if (!is_scalar($value) && !$value instanceof \Stringable) {
-            return null;
+            return new Violation('Enter a valid email address', $field, 'email');
         }
 
         return filter_var((string) $value, FILTER_VALIDATE_EMAIL) === false

@@ -27,16 +27,57 @@ final readonly class Condition
         return new self($field, 'filled');
     }
 
-    /** @param array<string,mixed> $values */
+    /**
+     * Shared normalization contract (mirrored in assets/enhance.js):
+     * absent key => null, "" stays "" (so null !== ""), scalars stringify,
+     * lists stringify + dedupe + sort, compared strictly.
+     *
+     * @param array<string,mixed> $values
+     */
     public function matches(array $values): bool
     {
-        $actual = $values[$this->field] ?? null;
+        $actual = array_key_exists($this->field, $values) ? self::normalize($values[$this->field]) : null;
+        $expected = self::normalize($this->expected);
 
         return match ($this->operator) {
-            'eq' => $actual == $this->expected,
-            'neq' => $actual != $this->expected,
+            'eq' => self::equalsNormalized($actual, $expected),
+            'neq' => !self::equalsNormalized($actual, $expected),
             'filled' => $actual !== null && $actual !== '' && $actual !== [],
             default => false,
         };
+    }
+
+    /**
+     * @return null|string|list<string>
+     */
+    public static function normalize(mixed $value): string|array|null
+    {
+        if ($value === null) {
+            return null;
+        }
+        if (is_array($value)) {
+            $out = [];
+            foreach ($value as $item) {
+                if ($item === null) {
+                    continue;
+                }
+                if (is_scalar($item) || $item instanceof \Stringable) {
+                    $out[] = (string) $item;
+                }
+            }
+            $out = array_values(array_unique($out));
+            sort($out);
+            return $out;
+        }
+        if (is_scalar($value) || $value instanceof \Stringable) {
+            return (string) $value;
+        }
+        return null;
+    }
+
+    /** @param null|string|list<string> $a @param null|string|list<string> $b */
+    private static function equalsNormalized(mixed $a, mixed $b): bool
+    {
+        return $a === $b;
     }
 }

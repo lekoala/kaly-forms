@@ -4,7 +4,11 @@ declare(strict_types=1);
 
 namespace Kaly\Forms\Render;
 
+use Kaly\Forms\Field\CheckboxGroupField;
 use Kaly\Forms\Field\Field;
+use Kaly\Forms\Field\FileField;
+use Kaly\Forms\Field\MultipleSelectField;
+use Kaly\Forms\Field\RadioGroupField;
 use Kaly\Forms\FormState;
 use Kaly\Forms\Html;
 use Kaly\Forms\Node\ColumnsLayout;
@@ -13,12 +17,16 @@ use Kaly\Forms\Node\Group;
 use Kaly\Forms\Node\InlineLayout;
 use Kaly\Forms\Node\Layout;
 use Kaly\Forms\Node\StackLayout;
+use Kaly\Forms\Validation\Checked;
 use Kaly\Forms\Validation\Required;
 use Kaly\Forms\Violation;
 
 /**
  * Stable extension toolkit for node renderers: state, recursion, escaping and theme access.
  * Renderers decide structure; decoration comes from the theme.
+ *
+ * idFor() provides a stable unique control ID. A renderer may associate a
+ * label explicitly (for) or implicitly (wrapping the control).
  */
 final class RenderContext
 {
@@ -26,6 +34,7 @@ final class RenderContext
         private readonly FormState $state,
         private readonly FormTheme $theme,
         private readonly NodeRendererRegistry $renderers,
+        private readonly string $formName = '',
     ) {}
 
     public function state(): FormState
@@ -61,7 +70,7 @@ final class RenderContext
         $required = false;
         if ($node instanceof Field) {
             foreach ($node->rules as $rule) {
-                if ($rule instanceof Required) {
+                if ($rule instanceof Required || $rule instanceof Checked) {
                     $required = true;
                     break;
                 }
@@ -117,21 +126,89 @@ final class RenderContext
             return [];
         }
 
-        return [
+        $attrs = [
             'data-kf-visible-field' => $condition->field,
             'data-kf-visible-op' => $condition->operator,
-            'data-kf-visible-value' => is_scalar($condition->expected) ? (string) $condition->expected : json_encode($condition->expected),
         ];
+        if ($condition->expected !== null) {
+            $attrs['data-kf-visible-value'] = is_scalar($condition->expected)
+                ? (string) $condition->expected
+                : json_encode($condition->expected);
+        }
+        return $attrs;
     }
 
-    /** @return array<string,string|int|float|bool|null> */
+    /**
+     * Native constraint projection.
+     *
+     * Conditionally visible fields never project `required`: an inactive
+     * branch must not block native validation (server skips it too).
+     * Checkbox groups never project `required` per box (that would mean
+     * "all boxes required", not "at least one").
+     *
+     * @return array<string,string|int|float|bool|null>
+     */
     public function ruleAttributes(Field $field): array
     {
+        if ($field->visibleWhen !== null) {
+            return [];
+        }
+        if ($field instanceof CheckboxGroupField) {
+            return [];
+        }
         $attrs = [];
         foreach ($field->rules as $rule) {
             $attrs = [...$attrs, ...$rule->htmlAttributes()];
         }
         return $attrs;
+    }
+
+    /**
+     * Whether this radio in a required group carries native `required`.
+     * HTML treats one required radio per name as "one of the group".
+     */
+    public function radioRequired(RadioGroupField $field, int $index): bool
+    {
+        if ($field->visibleWhen !== null || $index !== 0) {
+            return false;
+        }
+        foreach ($field->rules as $rule) {
+            if ($rule instanceof Required || $rule instanceof Checked) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Submission name (PHP protocol) — with [] for multi-value controls —
+     * while FormState keeps the logical name.
+     */
+    public function htmlName(Field $field): string
+    {
+        if ($field instanceof MultipleSelectField) {
+            return $field->name . '[]';
+        }
+        if ($field instanceof CheckboxGroupField) {
+            return $field->name . '[]';
+        }
+        if ($field instanceof FileField && $field->multiple) {
+            return $field->name . '[]';
+        }
+        return $field->name;
+    }
+
+    /**
+     * Effective control ID: custom attributes['id'] wins and labels follow it;
+     * otherwise a form-scoped stable ID so two forms can share field names.
+     */
+    public function controlId(Field $field): string
+    {
+        $custom = $field->attributes['id'] ?? null;
+        if (is_string($custom) && $custom !== '') {
+            return $custom;
+        }
+        return $this->idFor($field->name);
     }
 
     public function fieldRow(Field $field, string $control): Html
@@ -145,7 +222,7 @@ final class RenderContext
                 '<label'
                 . $this->attrs($this->attributes(RenderPart::Label, $field))
                 . ' for="'
-                . $this->e($this->idFor($field->name))
+                . $this->e($this->controlId($field))
                 . '">'
                 . $this->e($field->label)
                 . '</label>';
@@ -165,6 +242,36 @@ final class RenderContext
         }
 
         return new Html($out . '</div>');
+    }
+
+    /**
+     * Semantic group wrapper: fieldset + legend, no for/id association.
+     * Used for radio/checkbox groups which are multiple controls.
+     */
+    public function fieldGroup(Field $field, string $control): Html
+    {
+        $out =
+            '<fieldset'
+            . $this->attrs(array_merge($this->attributes(RenderPart::Field, $field), $this->conditionAttributes($field->visibleWhen)))
+            . '>';
+        if ($field->label !== null) {
+            $out .= '<legend>' . $this->e($field->label) . '</legend>';
+        }
+        $out .= $control;
+
+        if ($field->help !== null) {
+            $out .= '<div' . $this->attrs($this->attributes(RenderPart::Help, $field)) . '>' . $this->e($field->help) . '</div>';
+        }
+        foreach ($this->violations($field) as $error) {
+            $out .=
+                '<div'
+                . $this->attrs($this->attributes(RenderPart::Errors, $field))
+                . ' role="alert">'
+                . $this->e($error->message)
+                . '</div>';
+        }
+
+        return new Html($out . '</fieldset>');
     }
 
     /**
@@ -233,6 +340,11 @@ final class RenderContext
 
     public function idFor(string $name): string
     {
-        return 'field-' . preg_replace('/[^A-Za-z0-9_-]+/', '-', $name);
+        $slug = (string) preg_replace('/[^A-Za-z0-9_-]+/', '-', $name);
+        if ($this->formName !== '') {
+            $form = (string) preg_replace('/[^A-Za-z0-9_-]+/', '-', $this->formName);
+            return 'kf-' . $form . '-' . $slug;
+        }
+        return 'field-' . $slug;
     }
 }

@@ -18,7 +18,7 @@ final readonly class Numeric implements Rule
             return null;
         }
         if (!is_scalar($value) && !$value instanceof \Stringable) {
-            return null;
+            return new Violation($this->message, $field, 'numeric');
         }
 
         return is_numeric((string) $value) ? null : new Violation($this->message, $field, 'numeric');

@@ -52,7 +52,7 @@ $form = $form->withState(FormState::from(
         'email' => 'wrong@example.test',
     ],
     violations: [
-        new Violation('email', 'This account cannot sign in'),
+        new Violation('This account cannot sign in', 'email'),
     ],
 ));
 ```
@@ -134,6 +134,8 @@ Server-side code must still derive or validate protected values. The name descri
 ### Files live outside scalar values
 
 `FileField` presents the control (`accept`, `multiple`) and switches the form to `multipart/form-data`, but uploaded files never enter `FormState::values()`. With Kaly/Slim/PSR-7, `$request->getUploadedFiles()` remains the source; the application owns the upload lifecycle. File inputs are never refilled, even after a failed submission.
+
+`FileField(required: true)` renders native `required`, but structural validation can only enforce it when the validator knows about uploads: pass a `FilePresence` adapter (`new StructuralValidator($files)`) backed by your request's uploaded files. Without an adapter, the required-file check is skipped server-side and the application must validate the upload itself — `required` alone is not a server guarantee.
 
 ## Custom fields
 
