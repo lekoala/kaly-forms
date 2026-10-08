@@ -8,6 +8,7 @@ use Kaly\Forms\Action\SubmitAction;
 use Kaly\Forms\Field\CheckboxField;
 use Kaly\Forms\Field\ChoiceField;
 use Kaly\Forms\Field\CustomElementField;
+use Kaly\Forms\Field\DateField;
 use Kaly\Forms\Field\EmailField;
 use Kaly\Forms\Field\Field;
 use Kaly\Forms\Field\HiddenField;
@@ -152,6 +153,7 @@ final class HtmlRenderer implements RendererInterface
     {
         $this->registerTextControls();
         $this->registerChoiceControls();
+        $this->registerDateControls();
         $this->registerEmbeddedControls();
     }
 
@@ -265,6 +267,27 @@ final class HtmlRenderer implements RendererInterface
                     'type' => 'checkbox',
                     'value' => '1',
                     'checked' => filter_var($value, FILTER_VALIDATE_BOOL),
+                    ...$this->ruleAttributes($field),
+                    ...$field->attributes,
+                ])
+                . '>',
+            );
+        });
+    }
+
+    private function registerDateControls(): void
+    {
+        $this->fields->register(DateField::class, function (Field $raw, mixed $value): Html {
+            /** @var DateField $field */ $field = $raw;
+            return new Html(
+                '<input'
+                . $this->attrs([
+                    'id' => $this->id($field->name),
+                    'name' => $field->name,
+                    'type' => 'date',
+                    'value' => $this->textValue($value),
+                    'min' => $field->min,
+                    'max' => $field->max,
                     ...$this->ruleAttributes($field),
                     ...$field->attributes,
                 ])

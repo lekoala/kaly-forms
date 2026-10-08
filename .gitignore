@@ -1,5 +1,5 @@
 composer.lock
-vendor
-.phpunit.cache
+vendor/
+.phpunit.cache/
 .temp/
 *.log

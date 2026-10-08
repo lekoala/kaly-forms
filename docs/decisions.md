@@ -52,3 +52,42 @@ A feature should normally satisfy all of these:
 2. it cannot be expressed cleanly as a custom field/renderer/application helper;
 3. it belongs to presentation/interaction rather than HTTP/domain/workflow;
 4. its lifecycle can remain explicit and framework-independent.
+
+## Why FieldTypes instead of a container in Form?
+
+An application should be able to decide late which concrete implementation represents a standard UI concept (a date is a native input here, a calendar picker there) without the form knowing that decision. A container inside `Form` would make the form a service locator and tie the library to a container API.
+
+Instead, field creation is an explicit seam with two independent axes:
+
+```text
+FieldTypes
+    concept requested → concrete Field implementation/factory
+
+FieldRendererRegistry
+    concrete Field → HTML renderer
+```
+
+The rule:
+
+> Substitute the renderer when only the markup changes; substitute the field through `FieldTypes` when the model itself changes.
+
+```php
+// Same model, different markup.
+$renderers->register(DateField::class, new CalendarDateFieldRenderer());
+
+// Different model: extra interaction semantics.
+$types->register(DateField::class, fn(...): Field => new CalendarDateField(...));
+```
+
+`Fields` is the typed authoring API (`$fields->date(...)`); `FieldTypes` is the composition/extensibility API configured once at the composition root. Factories are plain closures, so a factory needing a service captures it from the composition scope instead of the field resolving it:
+
+```php
+$types->register(
+    DirectoryField::class,
+    static fn(string $name, ?string $label = null): Field => new DirectoryField($name, $label, $countries),
+);
+```
+
+`FieldTypes` is therefore deliberately mutable during composition, with `FieldTypes::defaults()` giving tests a fresh registry instead of a shared singleton. No `freeze()`/`lock()` until a real use case needs it.
+
+Factories stay closures for now; introduce a `FooFieldSpec` only when a signature becomes painful to replicate, needs real normalization, or several substantial implementations must share exactly the same contract.

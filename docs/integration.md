@@ -30,6 +30,17 @@ Kaly integration may additionally provide:
 - renderer integration so `HtmlRenderable` is marked safe in Twig/Latte only after `toHtml()` has escaped its components;
 - helpers to inject CSRF hidden fields or route-generated endpoint URLs at form construction time.
 
+Substituting a field implementation stays at the composition root. Conceptually:
+
+```php
+$di->callback(
+    FieldTypes::class,
+    static function (FieldTypes $types): void {
+        $types->register(DateField::class, fn(...): Field => new CalendarDateField(...));
+    },
+);
+```
+
 The core package should still know nothing about Kaly.
 
 ## Slim / PSR-7
@@ -43,6 +54,18 @@ $state = FormState::from(
 );
 
 $form = $definition->withState($state);
+```
+
+The same manual wiring applies without a container:
+
+```php
+$types = FieldTypes::defaults();
+$types->register(DateField::class, fn(...): Field => new CalendarDateField(...));
+
+$fields = new Fields($types);
+$form = $forms->create(name: 'registration', action: '/registrations', fields: [
+    $fields->date(name: 'birthDate', label: 'Birth date'),
+]);
 ```
 
 The application's validator and CSRF middleware remain unchanged.

@@ -59,6 +59,31 @@ $form = $form->withState(FormState::from(
 
 `FormState` is separate from the definition so the same form definition can be reused safely.
 
+## Author fields through Fields
+
+`Fields` is the public authoring API: one typed method per field with named arguments and IDE support.
+
+```php
+use Kaly\Forms\Fields;
+
+$fields = new Fields();
+
+$form = $forms->create(
+    name: 'registration',
+    action: '/registrations',
+    fields: [
+        $fields->text(name: 'firstName', label: 'First name', required: true),
+        $fields->email(name: 'email', label: 'Email', required: true),
+        $fields->date(name: 'birthDate', label: 'Birth date', max: '2026-12-31'),
+    ],
+    actions: [new SubmitAction('save', 'Register')],
+);
+```
+
+Direct construction (`new EmailField(...)`) keeps working. Prefer `Fields` in application code: it delegates to the injected `FieldTypes` registry, so the application can substitute implementations without touching form definitions.
+
+Two independent axes, one rule: substitute the renderer when only the markup changes; substitute the field through `FieldTypes` when the model itself changes. See `decisions.md`.
+
 ## Built-in field direction
 
 The initial core is deliberately small:
@@ -70,6 +95,7 @@ The initial core is deliberately small:
 - `ChoiceField`;
 - `CheckboxField`;
 - `HiddenField`;
+- `DateField`;
 - `HtmlField` for explicitly trusted content;
 - `CustomElementField` for custom-element based widgets.
 
@@ -112,6 +138,17 @@ $renderer->fieldRenderers()->register(
 ```
 
 This is the primary extension mechanism. Prefer it over core feature growth for application-specific widgets.
+
+Application-defined semantic types can also be registered in `FieldTypes` so form definitions keep requesting the concept while the application decides the implementation:
+
+```php
+$types->register(DateField::class, fn(...): Field => new CalendarDateField(...));
+
+$fields = new Fields($types);
+$fields->date(name: 'birthDate', label: 'Birth date'); // CalendarDateField
+```
+
+`FieldTypes` is mutable during application composition; treat it as read-only once forms are being created.
 
 ## Renderer replacement
 
