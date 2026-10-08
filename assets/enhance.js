@@ -1,9 +1,16 @@
-// Optional progressive enhancement proof-of-concept.
+// Optional progressive enhancement (demo-level, dependency-free).
 // Core rendering/validation works without this file.
 //
 // Shared contract with PHP Condition::normalize/matches:
 // absent/unchecked => null, "" stays "" (null !== ""), scalars stringify,
-// lists stringify + dedupe + sort, comparisons are strict.
+// lists stringify + dedupe + sort (code-unit order, mirrors SORT_STRING),
+// comparisons are strict. Expected values carry an explicit
+// data-kf-visible-type ("string"/"list") so a string like '["a"]' is never
+// confused with a list.
+
+function compareStrings(a, b) {
+  return a < b ? -1 : a > b ? 1 : 0;
+}
 
 function normalize(value) {
   if (value === null || value === undefined) return null;
@@ -14,7 +21,7 @@ function normalize(value) {
       const s = String(item);
       if (!out.includes(s)) out.push(s);
     }
-    out.sort();
+    out.sort(compareStrings);
     return out;
   }
   if (typeof value === 'object') return null;
@@ -33,15 +40,16 @@ function isEqual(a, b) {
 }
 
 function parseExpected(row) {
-  if (!('kfVisibleValue' in row.dataset)) return null;
+  if (!('kfVisibleType' in row.dataset) || !('kfVisibleValue' in row.dataset)) return null;
   const raw = row.dataset.kfVisibleValue;
-  if (raw.startsWith('[')) {
+  if (row.dataset.kfVisibleType === 'list') {
     try {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) return parsed;
     } catch {
-      // fall through to raw string
+      // Fall through: malformed metadata never matches a list silently.
     }
+    return raw;
   }
   return raw;
 }
@@ -65,17 +73,19 @@ function currentValue(form, name) {
     const selected = Array.from(first.selectedOptions).map((o) => o.value);
     return selected.length > 0 ? selected : null;
   }
-  if (els.length > 1 || (els[0] instanceof HTMLInputElement && els[0].type === 'checkbox' && els.length > 1)) {
+  if (
+    first instanceof HTMLInputElement
+    && (first.type === 'radio' || first.type === 'checkbox')
+    && (els.length > 1 || first.dataset.kfValueKind === 'list')
+  ) {
+    if (first.type === 'radio') {
+      const picked = els.find((el) => el.checked);
+      return picked ? picked.value : null;
+    }
     const checked = els
       .filter((el) => el instanceof HTMLInputElement && el.type === 'checkbox' && el.checked)
       .map((el) => el.value);
-    if (els[0] instanceof HTMLInputElement && (els[0].type === 'radio' || els[0].type === 'checkbox')) {
-      if (els[0].type === 'radio') {
-        const picked = els.find((el) => el.checked);
-        return picked ? picked.value : null;
-      }
-      return checked.length > 0 ? checked : null;
-    }
+    return checked.length > 0 ? checked : null;
   }
   if (first instanceof HTMLInputElement && first.type === 'checkbox') {
     return first.checked ? first.value : null;
@@ -109,12 +119,44 @@ function setBranchState(row, visible) {
   }
 }
 
+function ownVisibility(form, row) {
+  const actual = currentValue(form, row.dataset.kfVisibleField);
+  const expected = parseExpected(row);
+  const op = row.dataset.kfVisibleOp;
+  if (op === 'filled') {
+    return actual !== null && actual !== '' && !(Array.isArray(actual) && actual.length === 0);
+  }
+  if (op === 'neq') return !isEqual(actual, expected);
+  return isEqual(actual, expected);
+}
+
 function applyConditions(form) {
-  for (const row of form.querySelectorAll('[data-kf-visible-field]')) {
-    const actual = currentValue(form, row.dataset.kfVisibleField);
-    const expected = parseExpected(row);
-    const op = row.dataset.kfVisibleOp;
-    const visible = op === 'filled' ? actual !== null && actual !== '' && !(Array.isArray(actual) && actual.length === 0) : op === 'neq' ? !isEqual(actual, expected) : isEqual(actual, expected);
+  const rows = Array.from(form.querySelectorAll('[data-kf-visible-field]'));
+  const own = new Map();
+  for (const row of rows) own.set(row, ownVisibility(form, row));
+  // A branch is effectively visible only when its own condition holds AND
+  // every conditional ancestor is effectively visible. Without this, a
+  // nested branch whose condition is true would re-enable controls inside
+  // a hidden parent (leaving them enabled, required and submitted).
+  const effective = new Map();
+  const isEffective = (row) => {
+    if (effective.has(row)) return effective.get(row);
+    let visible = own.get(row);
+    let parent = row.parentElement;
+    while (visible && parent && parent !== form) {
+      if (parent.matches && parent.matches('[data-kf-visible-field]')) {
+        if (!own.has(parent)) own.set(parent, ownVisibility(form, parent));
+        visible = visible && isEffective(parent);
+      }
+      parent = parent.parentElement;
+    }
+    effective.set(row, visible);
+    return visible;
+  };
+  // Document order is outer-before-inner, so restoring a parent before
+  // disabling a hidden child (and vice versa) always ends correctly.
+  for (const row of rows) {
+    const visible = isEffective(row);
     row.hidden = !visible;
     row.toggleAttribute('inert', !visible);
     setBranchState(row, visible);

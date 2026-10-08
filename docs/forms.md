@@ -2,7 +2,7 @@
 
 ## Create a form
 
-The prototype favors normal PHP objects and named arguments over a metadata language.
+The library favors normal PHP objects and named arguments over a metadata language.
 
 ```php
 use Kaly\Forms\Action\SubmitAction;

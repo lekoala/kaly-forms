@@ -10,6 +10,11 @@ declare(strict_types=1);
 //
 // Reads native multipart uploads only. Validation, storage policy and real
 // CSRF belong to the application; the token check below is illustrative.
+//
+// SECURITY: uploads are stored OUTSIDE the served directory under a random
+// identifier with a neutral extension. Never store uploads under their
+// original name inside the document root: a submitted "shell.php" would
+// become directly executable over HTTP.
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
     http_response_code(405);
@@ -26,13 +31,15 @@ if ($expected === '' || !is_string($posted) || !hash_equals($expected, $posted))
     exit();
 }
 
+$dir = demoStoreDir();
+
 $stored = 0;
 foreach (demoUploads($_FILES['documents'] ?? null) as $file) {
     if ($file['error'] !== UPLOAD_ERR_OK || !is_uploaded_file($file['tmp_name'])) {
         continue;
     }
-    $target = demoVarDir() . '/' . basename($file['name']);
-    if (move_uploaded_file($file['tmp_name'], $target)) {
+    $id = bin2hex(random_bytes(16));
+    if (move_uploaded_file($file['tmp_name'], $dir . '/' . $id . '.bin')) {
         $stored++;
     }
 }
@@ -77,11 +84,13 @@ function demoSingleUpload(string $name, mixed $tmp, mixed $error): array
     ];
 }
 
-function demoVarDir(): string
+function demoStoreDir(): string
 {
-    $dir = __DIR__ . '/var';
+    // Outside the served directory on purpose: nothing stored here is
+    // reachable (and therefore executable) over HTTP.
+    $dir = sys_get_temp_dir() . '/kaly-forms-demo-uploads-sync';
     if (!is_dir($dir)) {
-        mkdir($dir, 0o777, true);
+        mkdir($dir, 0o700, true);
     }
     return $dir;
 }

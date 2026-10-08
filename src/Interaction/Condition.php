@@ -30,7 +30,7 @@ final readonly class Condition
     /**
      * Shared normalization contract (mirrored in assets/enhance.js):
      * absent key => null, "" stays "" (so null !== ""), scalars stringify,
-     * lists stringify + dedupe + sort, compared strictly.
+     * lists stringify + dedupe + sort (byte order, SORT_STRING), compared strictly.
      *
      * @param array<string,mixed> $values
      */
@@ -66,7 +66,7 @@ final readonly class Condition
                 }
             }
             $out = array_values(array_unique($out));
-            sort($out);
+            sort($out, SORT_STRING);
             return $out;
         }
         if (is_scalar($value) || $value instanceof \Stringable) {

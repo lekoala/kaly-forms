@@ -217,6 +217,7 @@ final class NodeRendererRegistry
                     'value' => $optionValue,
                     'checked' => in_array((string) $optionValue, $selected, true),
                     'data-kf-field' => $field->name,
+                    'data-kf-value-kind' => 'list',
                     ...$context->controlAttributes($field),
                 ])
                 . '> '
@@ -524,9 +525,10 @@ final class NodeRendererRegistry
     {
         $renderers->register(Group::class, static function (FormNode $node, RenderContext $context): Html {
             /** @var Group $group */ $group = $node;
+            $childContext = $group->visibleWhen !== null ? $context->withConditionalBranch() : $context;
             $out = '';
             foreach ($group->children() as $child) {
-                $out .= $context->render($child)->value();
+                $out .= $childContext->render($child)->value();
             }
             return new Html('<div' . $context->attrs($context->mergeAttributes($context->attributes(RenderPart::Group, $group), [
                 ...$group->attributes,
@@ -536,9 +538,10 @@ final class NodeRendererRegistry
         });
         $renderers->register(Fieldset::class, static function (FormNode $node, RenderContext $context): Html {
             /** @var Fieldset $fieldset */ $fieldset = $node;
+            $childContext = $fieldset->visibleWhen !== null ? $context->withConditionalBranch() : $context;
             $out = '<legend>' . $context->e($fieldset->legend) . '</legend>';
             foreach ($fieldset->children() as $child) {
-                $out .= $context->render($child)->value();
+                $out .= $childContext->render($child)->value();
             }
             return new Html('<fieldset' . $context->attrs($context->mergeAttributes($context->attributes(RenderPart::Fieldset, $fieldset), [
                 ...$fieldset->attributes,

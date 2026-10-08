@@ -8,6 +8,8 @@ use Kaly\Forms\Fields;
 use Kaly\Forms\FormFactory;
 use Kaly\Forms\FormState;
 use Kaly\Forms\Interaction\Condition;
+use Kaly\Forms\Node\Fieldset;
+use Kaly\Forms\Node\Group;
 use Kaly\Forms\Validation\Checked;
 use Kaly\Forms\Validation\Email;
 use Kaly\Forms\Validation\FilePresence;
@@ -207,5 +209,98 @@ final class ContractsTest extends TestCase
         $this->assertStringNotContainsString('Bob', $one);
         $this->assertStringContainsString('value="Bob"', $two);
         $this->assertStringNotContainsString('Alice', $two);
+    }
+
+    public function testContainerConditionalSuppressesRequiredWithoutJs(): void
+    {
+        $fields = new Fields();
+        $html = (string) (new FormFactory())->create(name: 'reg', action: '/r', children: [
+            new Group(
+                children: [
+                    $fields->text('company', label: 'Company', required: true),
+                    $fields->radio('kind2', label: 'Kind', choices: ['a' => 'A', 'b' => 'B'], required: true),
+                ],
+                visibleWhen: Condition::equals('kind', 'pro'),
+            ),
+            new Fieldset(
+                legend: 'Pro',
+                children: [$fields->text('siret', label: 'SIRET', required: true)],
+                visibleWhen: Condition::equals('kind', 'pro'),
+            ),
+        ]);
+
+        $this->assertStringNotContainsString('required', $html);
+        $this->assertStringContainsString('data-kf-visible-field="kind"', $html);
+    }
+
+    public function testNestedConditionalBranchesRenderNestedMetadata(): void
+    {
+        $fields = new Fields();
+        $html = (string) (new FormFactory())->create(name: 'a', action: '/a', children: [
+            new Group(
+                children: [
+                    new Group(
+                        children: [$fields->text('detail', label: 'Detail', required: true)],
+                        visibleWhen: Condition::equals('sub', 'yes'),
+                    ),
+                ],
+                visibleWhen: Condition::equals('kind', 'pro'),
+            ),
+        ]);
+
+        $outer = strpos($html, 'data-kf-visible-field="kind"');
+        $inner = strpos($html, 'data-kf-visible-field="sub"');
+        $this->assertNotFalse($outer);
+        $this->assertNotFalse($inner);
+        $this->assertLessThan($inner, $outer);
+        // Innermost field is inside a conditional branch: no native required.
+        $this->assertStringNotContainsString('required', $html);
+    }
+
+    public function testSingleOptionCheckboxGroupIsMarkedAsList(): void
+    {
+        $fields = new Fields();
+        $html = (string) (new FormFactory())->create(name: 'a', action: '/a', children: [
+            $fields->checkboxGroup('tags', label: 'Tags', choices: ['a' => 'A']),
+        ]);
+
+        $this->assertStringContainsString('name="tags[]"', $html);
+        $this->assertStringContainsString('data-kf-value-kind="list"', $html);
+        // A single list-kind control still validates as a list server-side.
+        $form = (new FormFactory())->create(name: 'a', action: '/a', children: [
+            $fields->checkboxGroup('tags', label: 'Tags', choices: ['a' => 'A'], required: true),
+        ]);
+        $this->assertTrue(Condition::equals('tags', ['a'])->matches(['tags' => ['a']]));
+        $this->assertCount(
+            0,
+            (new StructuralValidator())
+                ->validate($form, ['tags' => ['a']])
+                ->errorsFor('tags'),
+        );
+    }
+
+    public function testConditionValueCarriesExplicitType(): void
+    {
+        $fields = new Fields();
+        $html = (string) (new FormFactory())->create(name: 'a', action: '/a', children: [
+            $fields->text('code', label: 'Code', visibleWhen: Condition::equals('kind', '["a"]')),
+            $fields->text('tags', label: 'Tags', visibleWhen: Condition::equals('sel', ['b', 'a', 'a'])),
+            $fields->text('nick', label: 'Nick', visibleWhen: Condition::filled('kind')),
+        ]);
+
+        // A JSON-looking string stays a string: never parsed as a list.
+        $this->assertStringContainsString('data-kf-visible-value="[&quot;a&quot;]"', $html);
+        $this->assertStringContainsString('data-kf-visible-type="string"', $html);
+        // Lists are normalized (dedupe + string order) before serialization.
+        $this->assertStringContainsString('data-kf-visible-value="[&quot;a&quot;,&quot;b&quot;]"', $html);
+        $this->assertStringContainsString('data-kf-visible-type="list"', $html);
+        $this->assertSame(2, substr_count($html, 'data-kf-visible-type='));
+    }
+
+    public function testListNormalizationUsesStringOrder(): void
+    {
+        $this->assertSame(['01', '1'], Condition::normalize(['1', '01']));
+        $this->assertTrue(Condition::equals('tags', ['01', '1'])->matches(['tags' => ['1', '01']]));
+        $this->assertFalse(Condition::equals('tags', ['a'])->matches(['tags' => '["a"]']));
     }
 }

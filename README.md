@@ -1,6 +1,6 @@
-# kaly-forms prototype
+# kaly-forms
 
-A deliberately small prototype for a **framework-independent, server-first form presentation + interaction library**.
+A deliberately small library for **framework-independent, server-first form presentation + interaction**.
 
 ## Documentation
 
@@ -15,7 +15,7 @@ It is not a replacement for request mapping or application/business validation. 
 
 ```text
 HTTP request
-  -> mapper / input DTO                 (Kaly RequestInput, Slim code, ...)
+  -> mapper / input DTO                (Kaly RequestInput, Slim code, ...)
   -> structural validation             (optional kaly-forms rules)
   -> application/business validation   (authoritative)
   -> FormState(values, violations)
@@ -23,7 +23,7 @@ HTTP request
   -> HTML renderer
 ```
 
-The main experiment is that the **form can render itself** while rendering remains replaceable:
+The core idea is that the **form can render itself** while rendering remains replaceable:
 
 ```php
 $forms = new FormFactory($renderer);
@@ -130,7 +130,7 @@ For auto-escaping engines (Twig/Latte), an integration adapter should convert `H
 
 ### Server validation remains authoritative
 
-The prototype ships only **structural** rules that can also project to native HTML attributes (`required`, `minlength`, ...). Business rules stay in the application and are merged into `FormState` as violations.
+The library ships only **structural** rules that can also project to native HTML attributes (`required`, `minlength`, ...). Business rules stay in the application and are merged into `FormState` as violations.
 
 ### Interaction metadata, not a JS framework
 
@@ -150,7 +150,7 @@ BookingWizard
 
 The form library should not become a workflow engine.
 
-## What should probably ship in a v0.1
+## Included
 
 - text / email / password / textarea / hidden
 - choice / radio group / multiple select / checkbox group (+ optgroups)
@@ -175,7 +175,7 @@ The form library should not become a workflow engine.
 - compiling arbitrary PHP validation to JS;
 - owning HTTP request mapping or CSRF.
 
-## Kaly integration sketch
+## Kaly integration
 
 Kaly already owns request input mapping, violations, CSRF and rendering adapters. The integration can stay thin:
 
@@ -202,7 +202,7 @@ A Kaly renderer adapter can recognize `HtmlRenderable` and turn it into native s
 
 or the Twig equivalent without a `form_*` DSL in the template.
 
-## Slim integration sketch
+## Slim integration
 
 ```php
 $renderer = new HtmlRenderer();

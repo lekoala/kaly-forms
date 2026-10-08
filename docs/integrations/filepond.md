@@ -8,10 +8,10 @@ FilePond v5 is almost a textbook case for this library: it starts from a native 
 
 `examples/file-upload/` builds the same definition three ways:
 
-| Demo | What it proves |
-|---|---|
-| `basic.php` | `FileField` works without JS |
-| `filepond.php` | enhancement without model change (sync submit) |
+| Demo                 | What it proves                                         |
+|----------------------|--------------------------------------------------------|
+| `basic.php`          | `FileField` works without JS                           |
+| `filepond.php`       | enhancement without model change (sync submit)         |
 | `filepond-async.php` | separate endpoint, CSRF, upload tokens, restore/revert |
 
 `upload.php` and `temp-upload.php` are minimal plain-PHP endpoints. Serve with `php -S 127.0.0.1:8080 -t examples/file-upload` and set `DEMO_CSRF_TOKEN` to a random value. Their CSRF checks are illustrative; production code uses the framework CSRF service.

@@ -35,7 +35,22 @@ final class RenderContext
         private readonly FormTheme $theme,
         private readonly NodeRendererRegistry $renderers,
         private readonly string $formName = '',
+        private readonly bool $inConditionalBranch = false,
     ) {}
+
+    /**
+     * Context for rendering inside a conditionally visible container.
+     * Monotonic: once inside a conditional branch, descendants stay in one.
+     * Only presentation (native constraint projection) is affected;
+     * submitted values are never filtered.
+     */
+    public function withConditionalBranch(): self
+    {
+        if ($this->inConditionalBranch) {
+            return $this;
+        }
+        return new self($this->state, $this->theme, $this->renderers, $this->formName, true);
+    }
 
     public function state(): FormState
     {
@@ -130,11 +145,17 @@ final class RenderContext
             'data-kf-visible-field' => $condition->field,
             'data-kf-visible-op' => $condition->operator,
         ];
-        if ($condition->expected !== null) {
-            $attrs['data-kf-visible-value'] = is_scalar($condition->expected)
-                ? (string) $condition->expected
-                : json_encode($condition->expected);
+        $expected = \Kaly\Forms\Interaction\Condition::normalize($condition->expected);
+        if ($expected === null) {
+            return $attrs;
         }
+        if (is_array($expected)) {
+            $attrs['data-kf-visible-value'] = json_encode($expected);
+            $attrs['data-kf-visible-type'] = 'list';
+            return $attrs;
+        }
+        $attrs['data-kf-visible-value'] = $expected;
+        $attrs['data-kf-visible-type'] = 'string';
         return $attrs;
     }
 
@@ -143,14 +164,15 @@ final class RenderContext
      *
      * Conditionally visible fields never project `required`: an inactive
      * branch must not block native validation (server skips it too).
-     * Checkbox groups never project `required` per box (that would mean
-     * "all boxes required", not "at least one").
+     * This covers both a condition on the field itself and a condition on
+     * an ancestor Group/Fieldset. Checkbox groups never project `required`
+     * per box (that would mean "all boxes required", not "at least one").
      *
      * @return array<string,string|int|float|bool|null>
      */
     public function ruleAttributes(Field $field): array
     {
-        if ($field->visibleWhen !== null) {
+        if ($field->visibleWhen !== null || $this->inConditionalBranch) {
             return [];
         }
         if ($field instanceof CheckboxGroupField) {
@@ -169,7 +191,7 @@ final class RenderContext
      */
     public function radioRequired(RadioGroupField $field, int $index): bool
     {
-        if ($field->visibleWhen !== null || $index !== 0) {
+        if ($field->visibleWhen !== null || $this->inConditionalBranch || $index !== 0) {
             return false;
         }
         foreach ($field->rules as $rule) {
