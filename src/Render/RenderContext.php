@@ -167,6 +167,28 @@ final class RenderContext
         return new Html($out . '</div>');
     }
 
+    /**
+     * Normalizes a submitted value for multiple-value fields.
+     * A missing submission means an empty list, never null.
+     *
+     * @return list<string>
+     */
+    public function listValues(Field $field): array
+    {
+        $value = $this->state->value($field->name);
+        if ($value === null) {
+            return [];
+        }
+        if (is_array($value)) {
+            $out = [];
+            foreach ($value as $item) {
+                $out[] = $this->textValue($item);
+            }
+            return $out;
+        }
+        return [$this->textValue($value)];
+    }
+
     public function e(mixed $value): string
     {
         return htmlspecialchars($this->textValue($value), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');

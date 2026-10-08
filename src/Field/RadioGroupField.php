@@ -5,15 +5,13 @@ declare(strict_types=1);
 namespace Kaly\Forms\Field;
 
 use Kaly\Forms\Interaction\Condition;
-use Kaly\Forms\Interaction\RemoteOptions;
 use Kaly\Forms\Validation\Required;
 
-final class ChoiceField extends Field
+/** One value from a fixed set, rendered as radio buttons sharing one name. */
+final class RadioGroupField extends Field
 {
     /**
-     * Nested arrays are a shorthand for OptionGroup; only one level is allowed.
-     *
-     * @param array<string|int,string|OptionGroup|array<string|int,mixed>> $choices
+     * @param array<string|int,string> $choices
      * @param array<string,string|int|float|bool|null> $attributes
      */
     public function __construct(
@@ -22,14 +20,13 @@ final class ChoiceField extends Field
         array $choices = [],
         ?string $help = null,
         bool $required = false,
-        public readonly ?RemoteOptions $remote = null,
         array $attributes = [],
         ?Condition $visibleWhen = null,
     ) {
         parent::__construct($name, $label, $help, $attributes, $required ? [new Required()] : [], $visibleWhen);
-        $this->choices = OptionGroup::normalize($choices);
+        $this->choices = $choices;
     }
 
-    /** @var array<string|int,string|OptionGroup> */
+    /** @var array<string|int,string> */
     public readonly array $choices;
 }

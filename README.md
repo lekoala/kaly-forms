@@ -152,15 +152,15 @@ The form library should not become a workflow engine.
 
 ## What should probably ship in a v0.1
 
-- Text / email / password / textarea
-- choice / checkbox / hidden
-- file (not prototyped yet)
-- explicit trusted HTML field
-- custom element field
-- custom field renderer registry
+- text / email / password / textarea / hidden
+- choice / radio group / multiple select / checkbox group (+ optgroups)
+- checkbox / date / time / datetime / numeric
+- readonly (presentation only) / file (presentation only)
+- trusted HTML block / custom element field
+- semantic nodes: heading / text / fieldset / group + layout intentions
+- custom node renderer registry + theme + render profiles
 - FormState + violations
-- structural rules: required, length, pattern/range later
-- semantic HTML renderer
+- structural rules: required, length, email, numeric
 - interaction metadata: condition + remote options
 
 ## Explicit non-goals

@@ -96,3 +96,9 @@ $types->register(
 `FieldTypes` is therefore deliberately mutable during composition, with `FieldTypes::defaults()` giving tests a fresh registry instead of a shared singleton. No `freeze()`/`lock()` until a real use case needs it.
 
 Factories stay closures for now; introduce a `FooFieldSpec` only when a signature becomes painful to replicate, needs real normalization, or several substantial implementations must share exactly the same contract.
+
+## Why separate field types instead of option flags?
+
+`ChoiceField`, `RadioGroupField`, `MultipleSelectField` and `CheckboxGroupField` stay distinct because their submitted value (`string|null` vs `list<string>`), their HTML structure and their interaction differ. A `multiple: true, expanded: true` matrix on one type drifts toward a behavior matrix where one class means many things.
+
+`ConfirmedPasswordField` is deliberately not a core field either: two `PasswordField` controls in a `Group` plus cross-validation compose the same UI. If that ever feels painful, the composition seam needs work, not another class. Same reasoning keeps tabs and toggles as nodes and interactions rather than fields.

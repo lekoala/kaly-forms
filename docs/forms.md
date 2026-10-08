@@ -86,17 +86,30 @@ Two independent axes, one rule: substitute the renderer when only the markup cha
 
 ## Built-in field direction
 
-The initial core is deliberately small:
+The standard pack stays in fixed categories. Separate classes exist because the submitted value, the HTML structure or the interaction differs — not as option flags on one configurable type:
 
-- `TextField`;
-- `EmailField`;
-- `PasswordField`;
-- `TextareaField`;
-- `ChoiceField`;
-- `CheckboxField`;
-- `HiddenField`;
-- `DateField`;
-- `CustomElementField` for custom-element based widgets.
+```text
+Text
+  TextField, EmailField, PasswordField, TextareaField, HiddenField
+
+Choice (single string)
+  ChoiceField (select, optgroups), RadioGroupField (radios)
+
+Choice (list of strings)
+  MultipleSelectField (select multiple), CheckboxGroupField
+
+Temporal (submission strings, mapping belongs to the application)
+  DateField, TimeField, DateTimeField
+
+Scalar
+  CheckboxField, NumericField (string values, is_numeric check)
+
+Presentation/submission
+  ReadonlyField (displayed value + hidden canonical input)
+  FileField (presentation only, never refilled)
+```
+
+Plus `CustomElementField` as the bridge for custom-element widgets.
 
 Content nodes (not fields, constructed directly, never submitted):
 
@@ -104,7 +117,23 @@ Content nodes (not fields, constructed directly, never submitted):
 - `Fieldset` for semantic grouping;
 - `Group` for visual grouping with a `Layout` intention (`Layouts::stack()`, `inline()`, `columns(n)`).
 
-A file field and additional native HTML controls can be added without changing the architecture.
+## Field notes
+
+### Readonly is presentation, not trust
+
+`ReadonlyField` preserves a value through HTML submission with a hidden input, which the client can always modify:
+
+```text
+price displayed readonly
+≠
+price accepted from hidden input
+```
+
+Server-side code must still derive or validate protected values. The name describes the UI, not a security property.
+
+### Files live outside scalar values
+
+`FileField` presents the control (`accept`, `multiple`) and switches the form to `multipart/form-data`, but uploaded files never enter `FormState::values()`. With Kaly/Slim/PSR-7, `$request->getUploadedFiles()` remains the source; the application owns the upload lifecycle. File inputs are never refilled, even after a failed submission.
 
 ## Custom fields
 

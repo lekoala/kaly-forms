@@ -5,14 +5,23 @@ declare(strict_types=1);
 namespace Kaly\Forms;
 
 use Kaly\Forms\Field\CheckboxField;
+use Kaly\Forms\Field\CheckboxGroupField;
 use Kaly\Forms\Field\ChoiceField;
 use Kaly\Forms\Field\CustomElementField;
 use Kaly\Forms\Field\DateField;
+use Kaly\Forms\Field\DateTimeField;
 use Kaly\Forms\Field\EmailField;
+use Kaly\Forms\Field\FileField;
 use Kaly\Forms\Field\HiddenField;
+use Kaly\Forms\Field\MultipleSelectField;
+use Kaly\Forms\Field\NumericField;
+use Kaly\Forms\Field\OptionGroup;
 use Kaly\Forms\Field\PasswordField;
+use Kaly\Forms\Field\RadioGroupField;
+use Kaly\Forms\Field\ReadonlyField;
 use Kaly\Forms\Field\TextareaField;
 use Kaly\Forms\Field\TextField;
+use Kaly\Forms\Field\TimeField;
 use Kaly\Forms\Interaction\Condition;
 use Kaly\Forms\Interaction\RemoteOptions;
 
@@ -139,7 +148,7 @@ final class Fields
     }
 
     /**
-     * @param array<string|int,string> $choices
+     * @param array<string|int,string|OptionGroup|array<string|int,mixed>> $choices
      * @param array<string,string|int|float|bool|null> $attributes
      */
     public function choice(
@@ -232,6 +241,199 @@ final class Fields
             required: $required,
             min: $min,
             max: $max,
+            attributes: $attributes,
+            visibleWhen: $visibleWhen,
+        );
+    }
+
+    /**
+     * @param array<string|int,string> $choices
+     * @param array<string,string|int|float|bool|null> $attributes
+     */
+    public function radio(
+        string $name,
+        ?string $label = null,
+        array $choices = [],
+        ?string $help = null,
+        bool $required = false,
+        array $attributes = [],
+        ?Condition $visibleWhen = null,
+    ): RadioGroupField {
+        return $this->types->create(
+            RadioGroupField::class,
+            name: $name,
+            label: $label,
+            choices: $choices,
+            help: $help,
+            required: $required,
+            attributes: $attributes,
+            visibleWhen: $visibleWhen,
+        );
+    }
+
+    /**
+     * @param array<string|int,string|OptionGroup|array<string|int,mixed>> $choices
+     * @param array<string,string|int|float|bool|null> $attributes
+     */
+    public function multipleSelect(
+        string $name,
+        ?string $label = null,
+        array $choices = [],
+        ?string $help = null,
+        bool $required = false,
+        ?int $size = null,
+        array $attributes = [],
+        ?Condition $visibleWhen = null,
+    ): MultipleSelectField {
+        return $this->types->create(
+            MultipleSelectField::class,
+            name: $name,
+            label: $label,
+            choices: $choices,
+            help: $help,
+            required: $required,
+            size: $size,
+            attributes: $attributes,
+            visibleWhen: $visibleWhen,
+        );
+    }
+
+    /**
+     * @param array<string|int,string> $choices
+     * @param array<string,string|int|float|bool|null> $attributes
+     */
+    public function checkboxGroup(
+        string $name,
+        ?string $label = null,
+        array $choices = [],
+        ?string $help = null,
+        bool $required = false,
+        array $attributes = [],
+        ?Condition $visibleWhen = null,
+    ): CheckboxGroupField {
+        return $this->types->create(
+            CheckboxGroupField::class,
+            name: $name,
+            label: $label,
+            choices: $choices,
+            help: $help,
+            required: $required,
+            attributes: $attributes,
+            visibleWhen: $visibleWhen,
+        );
+    }
+
+    /** @param array<string,string|int|float|bool|null> $attributes */
+    public function time(
+        string $name,
+        ?string $label = null,
+        ?string $help = null,
+        bool $required = false,
+        ?string $min = null,
+        ?string $max = null,
+        array $attributes = [],
+        ?Condition $visibleWhen = null,
+    ): TimeField {
+        return $this->types->create(
+            TimeField::class,
+            name: $name,
+            label: $label,
+            help: $help,
+            required: $required,
+            min: $min,
+            max: $max,
+            attributes: $attributes,
+            visibleWhen: $visibleWhen,
+        );
+    }
+
+    /** @param array<string,string|int|float|bool|null> $attributes */
+    public function dateTime(
+        string $name,
+        ?string $label = null,
+        ?string $help = null,
+        bool $required = false,
+        ?string $min = null,
+        ?string $max = null,
+        array $attributes = [],
+        ?Condition $visibleWhen = null,
+    ): DateTimeField {
+        return $this->types->create(
+            DateTimeField::class,
+            name: $name,
+            label: $label,
+            help: $help,
+            required: $required,
+            min: $min,
+            max: $max,
+            attributes: $attributes,
+            visibleWhen: $visibleWhen,
+        );
+    }
+
+    /** @param array<string,string|int|float|bool|null> $attributes */
+    public function numeric(
+        string $name,
+        ?string $label = null,
+        ?string $help = null,
+        bool $required = false,
+        int|float|string|null $min = null,
+        int|float|string|null $max = null,
+        int|float|string|null $step = null,
+        array $attributes = [],
+        ?Condition $visibleWhen = null,
+    ): NumericField {
+        return $this->types->create(
+            NumericField::class,
+            name: $name,
+            label: $label,
+            help: $help,
+            required: $required,
+            min: $min,
+            max: $max,
+            step: $step,
+            attributes: $attributes,
+            visibleWhen: $visibleWhen,
+        );
+    }
+
+    /** @param array<string,string|int|float|bool|null> $attributes */
+    public function readonly(
+        string $name,
+        ?string $label = null,
+        ?string $help = null,
+        array $attributes = [],
+        ?Condition $visibleWhen = null,
+    ): ReadonlyField {
+        return $this->types->create(
+            ReadonlyField::class,
+            name: $name,
+            label: $label,
+            help: $help,
+            attributes: $attributes,
+            visibleWhen: $visibleWhen,
+        );
+    }
+
+    /** @param array<string,string|int|float|bool|null> $attributes */
+    public function file(
+        string $name,
+        ?string $label = null,
+        ?string $help = null,
+        bool $required = false,
+        ?string $accept = null,
+        bool $multiple = false,
+        array $attributes = [],
+        ?Condition $visibleWhen = null,
+    ): FileField {
+        return $this->types->create(
+            FileField::class,
+            name: $name,
+            label: $label,
+            help: $help,
+            required: $required,
+            accept: $accept,
+            multiple: $multiple,
             attributes: $attributes,
             visibleWhen: $visibleWhen,
         );

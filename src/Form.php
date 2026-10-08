@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Kaly\Forms;
 
 use Kaly\Forms\Action\SubmitAction;
+use Kaly\Forms\Field\FileField;
+use Kaly\Forms\Node\ContainerNode;
 use Kaly\Forms\Node\FormNode;
 use Kaly\Forms\Node\InlineLayout;
 use Kaly\Forms\Node\Layout;
@@ -31,6 +33,7 @@ final class Form implements HtmlRenderable
         public readonly array $attributes = [],
         public readonly Layout $actionsLayout = new InlineLayout(),
         ?RenderProfile $profile = null,
+        public readonly ?string $enctype = null,
     ) {
         $this->profile = $profile ?? RenderProfile::plain();
     }
@@ -62,6 +65,32 @@ final class Form implements HtmlRenderable
         return $this->profile;
     }
 
+    /**
+     * Explicit enctype wins; otherwise multipart when the static tree contains
+     * a FileField anywhere, even inside a hidden group.
+     */
+    public function enctype(): string
+    {
+        if ($this->enctype !== null) {
+            return $this->enctype;
+        }
+        return self::containsFileField($this->children) ? 'multipart/form-data' : 'application/x-www-form-urlencoded';
+    }
+
+    /** @param list<FormNode> $nodes */
+    private static function containsFileField(array $nodes): bool
+    {
+        foreach ($nodes as $node) {
+            if ($node instanceof FileField) {
+                return true;
+            }
+            if ($node instanceof ContainerNode && self::containsFileField($node->children())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public function withState(FormState $state): self
     {
         return new self(
@@ -75,6 +104,7 @@ final class Form implements HtmlRenderable
             $this->attributes,
             $this->actionsLayout,
             $this->profile,
+            $this->enctype,
         );
     }
 

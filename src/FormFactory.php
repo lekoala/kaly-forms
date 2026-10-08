@@ -33,6 +33,7 @@ final readonly class FormFactory
         array $attributes = [],
         Layout $actionsLayout = new InlineLayout(),
         ?RenderProfile $profile = null,
+        ?string $enctype = null,
     ): Form {
         return new Form(
             $name,
@@ -44,6 +45,7 @@ final readonly class FormFactory
             attributes: $attributes,
             actionsLayout: $actionsLayout,
             profile: $profile ?? $this->profile ?? RenderProfile::plain(),
+            enctype: $enctype,
         );
     }
 }

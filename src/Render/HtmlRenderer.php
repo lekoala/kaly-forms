@@ -18,10 +18,16 @@ final class HtmlRenderer implements RendererInterface
     {
         $profile = $form->profile();
         $context = new RenderContext($form->state(), $profile->theme, $profile->renderers);
-        $out = '<form' . $context->attrs($context->mergeAttributes($context->attributes(RenderPart::Form, null), [
+        $formAttrs = [
             'name' => $form->name,
             'method' => strtolower($form->method),
             'action' => $form->action,
+        ];
+        if ($form->enctype() !== 'application/x-www-form-urlencoded') {
+            $formAttrs['enctype'] = $form->enctype();
+        }
+        $out = '<form' . $context->attrs($context->mergeAttributes($context->attributes(RenderPart::Form, null), [
+            ...$formAttrs,
             ...$form->attributes,
         ])) . '>';
 
