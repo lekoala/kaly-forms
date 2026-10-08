@@ -57,19 +57,24 @@ A feature should normally satisfy all of these:
 
 An application should be able to decide late which concrete implementation represents a standard UI concept (a date is a native input here, a calendar picker there) without the form knowing that decision. A container inside `Form` would make the form a service locator and tie the library to a container API.
 
-Instead, field creation is an explicit seam with two independent axes:
+Instead, field creation is an explicit seam with independent axes:
 
 ```text
 FieldTypes
     concept requested → concrete Field implementation/factory
 
-FieldRendererRegistry
-    concrete Field → HTML renderer
+NodeRendererRegistry
+    node → HTML structure
+
+FormTheme
+    rendering role → classes/attributes
 ```
 
 The rule:
 
-> Substitute the renderer when only the markup changes; substitute the field through `FieldTypes` when the model itself changes.
+> Substitute the renderer when only the markup changes; substitute the field through `FieldTypes` when the model itself changes; change the theme when only decoration changes.
+
+Visibility is presentation state: it may neutralize structural constraints of inactive fields, but submitted values are never filtered by it. Not rendered, not validated and not accepted stay three separate decisions; only the application defines what it accepts.
 
 ```php
 // Same model, different markup.

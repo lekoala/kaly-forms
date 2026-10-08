@@ -17,18 +17,26 @@ values + violations
         ↓
 FormState
         ↓
-Form definition + Renderer
+Form definition + RenderProfile
         ↓
 HTML
 ```
 
 A consuming application may use Kaly `RequestInput`, a PSR-7 body array, Symfony Validator, its own validator, or something else entirely.
 
-## The four concepts
+## The concepts
 
 ### Form definition
 
-`Form` + `Field` + `SubmitAction` describe what should be presented.
+`Form` holds a tree of `FormNode` children plus `SubmitAction` actions. Three node families stay distinct:
+
+```text
+Field          submitted data (name, value, rules, conditions)
+SemanticNode   meaningful content without data (Heading, Text, Fieldset, HtmlBlock)
+LayoutNode     visual grouping without data (Group + Layout intention)
+```
+
+A `Group` carries composition intent (`Layouts::columns(2)`), never CSS: renderers interpret it, the model stays decoupled. `Fieldset` is different on purpose: it means real `<fieldset>` HTML with accessibility semantics.
 
 Definitions should be safe to reuse. Submitted values and errors do not mutate them.
 
@@ -68,18 +76,44 @@ They are not a replacement for application/business validation.
 <?= $form ?>
 ```
 
-This is convenience, not coupling: `Form::toHtml()` delegates to `RendererInterface`.
+This is convenience, not coupling: `Form::toHtml()` delegates to `RendererInterface`, and the definition carries a replaceable `RenderProfile` (theme + node renderers):
+
+```text
+Form definition
+     +
+FormState
+     +
+RenderProfile
+     =
+renderable Form
+```
+
+Four independent axes, each replaceable on its own:
+
+```text
+1. FieldTypes      concept → model ("which Field?")
+2. FormNode tree   what the form contains
+3. NodeRenderers   model → markup ("which HTML structure?")
+4. Theme           roles → classes/attributes ("how is it decorated?")
+```
+
+If only styling changes, change the theme. If markup changes, change the renderer. If the model itself changes, substitute the field.
 
 The renderer owns:
 
 - form/row/control markup;
 - escaping;
-- CSS classes;
 - labels/help/errors;
 - action markup;
-- mapping semantic field types to controls.
+- mapping semantic node types to controls.
 
-This permits an application to replace the default renderer without changing form definitions.
+Decoration (classes, attributes per rendering role) belongs to the theme, which receives a small read-only context (invalid/disabled/required/layout) instead of the whole renderer, so the two layers cannot merge.
+
+This permits an application to render the same definition through Plain, Actual, Bootstrap or Tailwind profiles without changing form definitions.
+
+### Visibility is presentation state
+
+`visibleWhen` controls rendering and may neutralize structural constraints of inactive fields, but it never filters submitted values: not rendered, not validated and not accepted are three different concepts, and only the application decides what it accepts. An attacker can always submit a hidden field.
 
 ## Why the form renders itself
 

@@ -5,9 +5,10 @@ declare(strict_types=1);
 namespace Kaly\Forms\Field;
 
 use Kaly\Forms\Interaction\Condition;
+use Kaly\Forms\Node\FormNode;
 use Kaly\Forms\Validation\Rule;
 
-abstract class Field
+abstract class Field implements FormNode
 {
     /**
      * @param array<string,string|int|float|bool|null> $attributes

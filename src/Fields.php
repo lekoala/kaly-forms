@@ -10,7 +10,6 @@ use Kaly\Forms\Field\CustomElementField;
 use Kaly\Forms\Field\DateField;
 use Kaly\Forms\Field\EmailField;
 use Kaly\Forms\Field\HiddenField;
-use Kaly\Forms\Field\HtmlField;
 use Kaly\Forms\Field\PasswordField;
 use Kaly\Forms\Field\TextareaField;
 use Kaly\Forms\Field\TextField;
@@ -190,11 +189,6 @@ final class Fields
     public function hidden(string $name, array $attributes = []): HiddenField
     {
         return $this->types->create(HiddenField::class, name: $name, attributes: $attributes);
-    }
-
-    public function html(string $name, Html $html): HtmlField
-    {
-        return $this->types->create(HtmlField::class, name: $name, html: $html);
     }
 
     /** @param array<string,string|int|float|bool|null> $attributes */

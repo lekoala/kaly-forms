@@ -63,7 +63,7 @@ $types = FieldTypes::defaults();
 $types->register(DateField::class, fn(...): Field => new CalendarDateField(...));
 
 $fields = new Fields($types);
-$form = $forms->create(name: 'registration', action: '/registrations', fields: [
+$form = $forms->create(name: 'registration', action: '/registrations', children: [
     $fields->date(name: 'birthDate', label: 'Birth date'),
 ]);
 ```
@@ -86,14 +86,16 @@ Do not require the template to understand a separate `form_start()` / `form_row(
 
 ## Design systems
 
-The preferred integration point for a design system is a renderer, not new field classes for every visual variation. This holds for any CSS framework or company design system: Actual CSS is mentioned below only as an illustrative example, not as a dependency or a recommendation.
+The preferred integration points for a design system are a `FormTheme` first and node renderers second, never new field classes for every visual variation. This holds for any CSS framework or company design system: Actual CSS is mentioned below only as an illustrative example, not as a dependency or a recommendation.
 
-For example, an Actual CSS renderer can decide:
+A typical profile is mostly shared defaults:
 
-- row/container markup;
-- label/help/error classes;
-- invalid state attributes;
-- action layout;
-- control classes.
+```text
+90% default node renderers
++ one FormTheme (classes/attributes per RenderPart)
++ a few structural renderer overrides (checkbox, group, ...)
+```
+
+For example, an Actual CSS theme can decide label/help/error/control classes and invalid-state attributes, while a Bootstrap integration additionally overrides the checkbox and group renderers for their specific structures. Both ship as `RenderProfile` values; the core never knows these frameworks.
 
 Semantic application widgets can still use custom `Field` types where the control itself is meaningfully different.

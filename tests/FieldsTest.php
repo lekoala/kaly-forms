@@ -10,10 +10,14 @@ use Kaly\Forms\Field\Field;
 use Kaly\Forms\Field\TextField;
 use Kaly\Forms\Fields;
 use Kaly\Forms\FieldTypes;
-use Kaly\Forms\FormState;
+use Kaly\Forms\FormFactory;
 use Kaly\Forms\Html;
 use Kaly\Forms\Interaction\Condition;
-use Kaly\Forms\Render\HtmlRenderer;
+use Kaly\Forms\Node\FormNode;
+use Kaly\Forms\Render\DefaultTheme;
+use Kaly\Forms\Render\NodeRendererRegistry;
+use Kaly\Forms\Render\RenderContext;
+use Kaly\Forms\Render\RenderProfile;
 use Kaly\Forms\Validation\Length;
 use PHPUnit\Framework\TestCase;
 
@@ -39,7 +43,11 @@ final class FieldsTest extends TestCase
 
     public function testDateFieldRendersNativeInputByDefault(): void
     {
-        $html = (string) (new HtmlRenderer())->renderField((new Fields())->date('birthDate', min: '1900-01-01'), new FormState());
+        $form = (new FormFactory())->create(name: 'details', action: '/details', children: [(new Fields())->date(
+            'birthDate',
+            min: '1900-01-01',
+        )]);
+        $html = (string) $form;
 
         $this->assertStringContainsString('type="date"', $html);
         $this->assertStringContainsString('min="1900-01-01"', $html);
@@ -72,16 +80,15 @@ final class FieldsTest extends TestCase
     {
         $field = (new Fields())->date('birthDate', label: 'Birth date');
 
-        $renderer = new HtmlRenderer();
-        $renderer->fieldRenderers()->register(
-            DateField::class,
-            static fn(Field $raw, mixed $value, FormState $state, HtmlRenderer $html): Html => new Html(
-                '<calendar-picker name="' . $html->e($raw->name) . '"></calendar-picker>',
-            ),
-        );
+        $renderers = NodeRendererRegistry::defaults();
+        $renderers->register(DateField::class, static function (FormNode $node, RenderContext $context): Html {
+            /** @var DateField $date */ $date = $node;
+            return new Html('<calendar-picker name="' . $context->e($date->name) . '"></calendar-picker>');
+        });
+        $profile = new RenderProfile(new DefaultTheme(), $renderers);
 
-        $default = (string) (new HtmlRenderer())->renderField($field, new FormState());
-        $custom = (string) $renderer->renderField($field, new FormState());
+        $default = (string) (new FormFactory())->create(name: 'a', action: '/a', children: [$field]);
+        $custom = (string) (new FormFactory(profile: $profile))->create(name: 'a', action: '/a', children: [$field]);
 
         $this->assertInstanceOf(DateField::class, $field);
         $this->assertStringContainsString('type="date"', $default);
@@ -101,15 +108,14 @@ final class FieldsTest extends TestCase
             ->create(DirectoryField::class, name: 'country', label: 'Country');
         $this->assertSame('country', $field->name);
 
-        $renderer = new HtmlRenderer();
-        $renderer->fieldRenderers()->register(
-            DirectoryField::class,
-            static fn(Field $raw, mixed $value, FormState $state, HtmlRenderer $html): Html => new Html(
-                '<directory-picker name="' . $html->e($raw->name) . '"></directory-picker>',
-            ),
-        );
+        $renderers = NodeRendererRegistry::defaults();
+        $renderers->register(DirectoryField::class, static function (FormNode $node, RenderContext $context): Html {
+            /** @var DirectoryField $directory */ $directory = $node;
+            return new Html('<directory-picker name="' . $context->e($directory->name) . '"></directory-picker>');
+        });
+        $profile = new RenderProfile(new DefaultTheme(), $renderers);
 
-        $html = (string) $renderer->renderField($field, new FormState());
+        $html = (string) (new FormFactory(profile: $profile))->create(name: 'a', action: '/a', children: [$field]);
         $this->assertStringContainsString('<directory-picker', $html);
     }
 

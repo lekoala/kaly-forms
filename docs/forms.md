@@ -15,7 +15,7 @@ $forms = new FormFactory();
 $form = $forms->create(
     name: 'login',
     action: '/login',
-    fields: [
+    children: [
         new EmailField(
             name: 'email',
             label: 'Email',
@@ -71,7 +71,7 @@ $fields = new Fields();
 $form = $forms->create(
     name: 'registration',
     action: '/registrations',
-    fields: [
+    children: [
         $fields->text(name: 'firstName', label: 'First name', required: true),
         $fields->email(name: 'email', label: 'Email', required: true),
         $fields->date(name: 'birthDate', label: 'Birth date', max: '2026-12-31'),
@@ -96,8 +96,13 @@ The initial core is deliberately small:
 - `CheckboxField`;
 - `HiddenField`;
 - `DateField`;
-- `HtmlField` for explicitly trusted content;
 - `CustomElementField` for custom-element based widgets.
+
+Content nodes (not fields, constructed directly, never submitted):
+
+- `Heading`, `Text`, `HtmlBlock` for trusted content;
+- `Fieldset` for semantic grouping;
+- `Group` for visual grouping with a `Layout` intention (`Layouts::stack()`, `inline()`, `columns(n)`).
 
 A file field and additional native HTML controls can be added without changing the architecture.
 
@@ -118,21 +123,18 @@ final class MoneyField extends Field
 }
 ```
 
-Register the rendering policy separately:
+Register the rendering policy separately on the profile renderers.
+The closure receives the node plus a `RenderContext` toolkit (state, recursion, escaping, theme access):
 
 ```php
-$renderer->fieldRenderers()->register(
+$renderers->register(
     MoneyField::class,
-    static function (
-        Field $raw,
-        mixed $value,
-        FormState $state,
-        HtmlRenderer $html,
-    ): Html {
+    static function (FormNode $node, RenderContext $context): Html {
         /** @var MoneyField $field */
-        $field = $raw;
+        $field = $node;
 
-        return new Html(/* application markup */);
+        $control = new Html(/* application markup */);
+        return $context->fieldRow($field, $control->value());
     },
 );
 ```
@@ -152,14 +154,17 @@ $fields->date(name: 'birthDate', label: 'Birth date'); // CalendarDateField
 
 ## Renderer replacement
 
-The default `HtmlRenderer` is a reference semantic renderer, not the only supported theme.
-
-An application may provide another `RendererInterface` through `FormFactory`:
+`RenderProfile` (theme + node renderers) travels with the form definition, so the same form renders through any profile:
 
 ```php
-$forms = new FormFactory($actualCssRenderer);
+$plain = (new FormFactory())->create(name: 'registration', action: '/registrations', children: [...]);
+
+$profile = new RenderProfile($actualTheme, $actualRenderers);
+$styled = (new FormFactory(profile: $profile))->create(name: 'registration', action: '/registrations', children: [...]);
 ```
 
 The form definitions and state remain unchanged.
 
-This is the intended seam for any design system or CSS framework. Actual CSS is only one illustrative example: the same `RendererInterface` can carry Bootstrap, Tailwind, Pico, a company design system, or plain semantic HTML. The library has no dependency on any of them.
+This is the intended seam for any design system or CSS framework. Actual CSS is only one illustrative example: the same profile mechanism can carry Bootstrap, Tailwind, Pico, a company design system, or plain semantic HTML. The library has no dependency on any of them.
+
+Rule of thumb: if only styling changes, change the theme; if markup structure changes, replace the node renderer. A profile is typically 90% default renderers plus a theme plus a few structural overrides.

@@ -45,7 +45,7 @@ Named arguments, built-in fields, structural browser/server rules, server violat
 $form = $forms->create(
     name: 'login',
     action: '/login',
-    fields: [
+    children: [
         new EmailField('email', label: 'Email', required: true),
         new PasswordField('password', label: 'Password', required: true),
     ],
@@ -82,9 +82,9 @@ final class MoneyField extends Field
     }
 }
 
-$renderer->fieldRenderers()->register(
+$renderers->register(
     MoneyField::class,
-    fn(Field $field, mixed $value, FormState $state, HtmlRenderer $html): Html => ...,
+    fn(FormNode $node, RenderContext $context): Html => ...,
 );
 ```
 

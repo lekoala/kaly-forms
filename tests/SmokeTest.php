@@ -19,7 +19,7 @@ final class SmokeTest extends TestCase
         $form = (new FormFactory())->create(
             name: 'account',
             action: '/account',
-            fields: [
+            children: [
                 new EmailField('email', label: 'Email', required: true),
                 new TextField('company', label: 'Company', required: true, visibleWhen: Condition::equals('kind', 'pro')),
                 new TextField('kind', label: 'Kind'),

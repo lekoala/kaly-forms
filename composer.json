@@ -1,6 +1,6 @@
 {
   "name": "lekoala/kaly-forms-prototype",
-  "description": "Prototype: small framework-independent server-first forms DSL with progressive enhancement metadata",
+  "description": "Small framework-independent server-first forms DSL with progressive enhancement metadata",
   "type": "library",
   "license": "MIT",
   "require": {

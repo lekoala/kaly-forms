@@ -73,7 +73,7 @@ new EmailField(
 Prefer explicit composition over metadata discovery:
 
 ```php
-$renderer->fieldRenderers()->register(MoneyField::class, $renderMoney(...));
+$renderers->register(MoneyField::class, $renderMoney(...));
 ```
 
 Avoid a Symfony-Forms-style graph of `FormType` / resolved types / transformers / event listeners unless a concrete repeated use case proves that complexity is needed.

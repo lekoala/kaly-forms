@@ -5,18 +5,22 @@ declare(strict_types=1);
 namespace Kaly\Forms;
 
 use Kaly\Forms\Action\SubmitAction;
-use Kaly\Forms\Field\Field;
+use Kaly\Forms\Node\FormNode;
+use Kaly\Forms\Node\InlineLayout;
+use Kaly\Forms\Node\Layout;
 use Kaly\Forms\Render\HtmlRenderer;
 use Kaly\Forms\Render\RendererInterface;
+use Kaly\Forms\Render\RenderProfile;
 
 final readonly class FormFactory
 {
     public function __construct(
         private RendererInterface $renderer = new HtmlRenderer(),
+        private ?RenderProfile $profile = null,
     ) {}
 
     /**
-     * @param list<Field> $fields
+     * @param list<FormNode> $children
      * @param list<SubmitAction> $actions
      * @param array<string,string|int|float|bool|null> $attributes
      */
@@ -24,10 +28,22 @@ final readonly class FormFactory
         string $name,
         string $action,
         string $method = 'post',
-        array $fields = [],
+        array $children = [],
         array $actions = [],
         array $attributes = [],
+        Layout $actionsLayout = new InlineLayout(),
+        ?RenderProfile $profile = null,
     ): Form {
-        return new Form($name, $action, $method, $fields, $actions, $this->renderer, attributes: $attributes);
+        return new Form(
+            $name,
+            $action,
+            $method,
+            $children,
+            $actions,
+            $this->renderer,
+            attributes: $attributes,
+            actionsLayout: $actionsLayout,
+            profile: $profile ?? $this->profile ?? RenderProfile::plain(),
+        );
     }
 }

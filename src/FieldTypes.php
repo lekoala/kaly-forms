@@ -11,7 +11,6 @@ use Kaly\Forms\Field\DateField;
 use Kaly\Forms\Field\EmailField;
 use Kaly\Forms\Field\Field;
 use Kaly\Forms\Field\HiddenField;
-use Kaly\Forms\Field\HtmlField;
 use Kaly\Forms\Field\PasswordField;
 use Kaly\Forms\Field\TextareaField;
 use Kaly\Forms\Field\TextField;
@@ -39,7 +38,6 @@ final class FieldTypes
         $types->register(ChoiceField::class, self::choiceField(...));
         $types->register(CheckboxField::class, self::checkboxField(...));
         $types->register(HiddenField::class, self::hiddenField(...));
-        $types->register(HtmlField::class, self::htmlField(...));
         $types->register(CustomElementField::class, self::customElementField(...));
         $types->register(DateField::class, self::dateField(...));
         return $types;
@@ -220,11 +218,6 @@ final class FieldTypes
     private static function hiddenField(string $name, array $attributes = []): Field
     {
         return new HiddenField(name: $name, attributes: $attributes);
-    }
-
-    private static function htmlField(string $name, Html $html): Field
-    {
-        return new HtmlField(name: $name, html: $html);
     }
 
     /** @param array<string,string|int|float|bool|null> $attributes */

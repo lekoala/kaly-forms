@@ -7,9 +7,12 @@ require dirname(__DIR__) . '/vendor/autoload.php';
 use Kaly\Forms\Action\SubmitAction;
 use Kaly\Forms\Field\Field;
 use Kaly\Forms\FormFactory;
-use Kaly\Forms\FormState;
 use Kaly\Forms\Html;
-use Kaly\Forms\Render\HtmlRenderer;
+use Kaly\Forms\Node\FormNode;
+use Kaly\Forms\Render\DefaultTheme;
+use Kaly\Forms\Render\NodeRendererRegistry;
+use Kaly\Forms\Render\RenderContext;
+use Kaly\Forms\Render\RenderProfile;
 
 final class MoneyField extends Field
 {
@@ -22,31 +25,27 @@ final class MoneyField extends Field
     }
 }
 
-$renderer = new HtmlRenderer();
-$renderer->fieldRenderers()->register(MoneyField::class, static function (
-    Field $raw,
-    mixed $value,
-    FormState $state,
-    HtmlRenderer $html,
-): Html {
-    /** @var MoneyField $field */ $field = $raw;
-    return new Html(
+$renderers = NodeRendererRegistry::defaults();
+$renderers->register(MoneyField::class, static function (FormNode $node, RenderContext $context): Html {
+    /** @var MoneyField $field */ $field = $node;
+    $control =
         '<span class="money-field"><input'
-        . $html->attrs([
+        . $context->attrs([
             'name' => $field->name,
             'inputmode' => 'decimal',
-            'value' => $html->textValue($value),
+            'value' => $context->textValue($context->value($field)),
         ])
         . '><span>'
-        . $html->e($field->currency)
-        . '</span></span>',
-    );
+        . $context->e($field->currency)
+        . '</span></span>';
+    return $context->fieldRow($field, $control);
 });
+$profile = new RenderProfile(new DefaultTheme(), $renderers);
 
-$form = (new FormFactory($renderer))->create(
+$form = (new FormFactory(profile: $profile))->create(
     name: 'price',
     action: '/price',
-    fields: [new MoneyField('amount', 'Amount')],
+    children: [new MoneyField('amount', 'Amount')],
     actions: [new SubmitAction('save', 'Save')],
 );
 
