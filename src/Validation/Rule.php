@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Kaly\Forms\Validation;
 
-use Kaly\Forms\Violation;
+use Kaly\Forms\FormError;
 
 interface Rule
 {
     /** @param array<string,mixed> $allValues */
-    public function validate(string $field, mixed $value, array $allValues): ?Violation;
+    public function validate(string $field, mixed $value, array $allValues): ?FormError;
 
     /**
      * Attributes that can be projected to native browser validation.

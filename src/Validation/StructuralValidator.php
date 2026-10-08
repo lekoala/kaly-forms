@@ -7,13 +7,27 @@ namespace Kaly\Forms\Validation;
 use Kaly\Forms\Field\Field;
 use Kaly\Forms\Field\FileField;
 use Kaly\Forms\Form;
+use Kaly\Forms\FormError;
 use Kaly\Forms\FormState;
 use Kaly\Forms\Node\ContainerNode;
 use Kaly\Forms\Node\Fieldset;
 use Kaly\Forms\Node\FormNode;
 use Kaly\Forms\Node\Group;
-use Kaly\Forms\Violation;
 
+/**
+ * Optional standalone validator for the small structural rules shipped with
+ * kaly-forms (required/length/email/numeric/checked).
+ *
+ * Applications using an external validation layer (Kaly, Symfony Validator, ...)
+ * should use that layer as the server authority and pass the resulting errors
+ * into FormState. Do not run both validators for the same submission unless
+ * this is intentional: rich server validation and HTML constraints necessarily
+ * overlap, but they are not required to stay synchronized automatically.
+ *
+ * The field rules are also projectable to native HTML attributes; the validator
+ * is the optional server-side counterpart of that projection, never a substitute
+ * for application/business validation.
+ */
 final class StructuralValidator
 {
     public function __construct(
@@ -23,9 +37,9 @@ final class StructuralValidator
     /** @param array<string,mixed> $values */
     public function validate(Form $form, array $values): FormState
     {
-        $violations = [];
-        $this->collect($form->children(), true, $values, $violations);
-        return FormState::from($values, $violations);
+        $errors = [];
+        $this->collect($form->children(), true, $values, $errors);
+        return FormState::from($values, $errors);
     }
 
     /**
@@ -38,9 +52,9 @@ final class StructuralValidator
      *
      * @param list<FormNode> $nodes
      * @param array<string,mixed> $values
-     * @param list<Violation> $violations
+     * @param list<FormError> $errors
      */
-    private function collect(array $nodes, bool $active, array $values, array &$violations): void
+    private function collect(array $nodes, bool $active, array $values, array &$errors): void
     {
         foreach ($nodes as $node) {
             if ($node instanceof Field) {
@@ -54,13 +68,13 @@ final class StructuralValidator
                             continue;
                         }
                         if (!$this->files->has($node->name)) {
-                            $violations[] = new Violation('This file is required', $node->name, 'required');
+                            $errors[] = new FormError('This file is required', $node->name, 'required');
                         }
                         continue;
                     }
-                    $violation = $rule->validate($node->name, $value, $values);
-                    if ($violation !== null) {
-                        $violations[] = $violation;
+                    $error = $rule->validate($node->name, $value, $values);
+                    if ($error !== null) {
+                        $errors[] = $error;
                     }
                 }
             } elseif ($node instanceof ContainerNode) {
@@ -68,7 +82,7 @@ final class StructuralValidator
                 if ($node instanceof Group || $node instanceof Fieldset) {
                     $childActive = $active && $node->isActiveFor($values);
                 }
-                $this->collect($node->children(), $childActive, $values, $violations);
+                $this->collect($node->children(), $childActive, $values, $errors);
             }
         }
     }

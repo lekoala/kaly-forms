@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Kaly\Forms\Validation;
 
-use Kaly\Forms\Violation;
+use Kaly\Forms\FormError;
 
 final readonly class Required implements Rule
 {
@@ -12,10 +12,10 @@ final readonly class Required implements Rule
         private string $message = 'This field is required',
     ) {}
 
-    public function validate(string $field, mixed $value, array $allValues): ?Violation
+    public function validate(string $field, mixed $value, array $allValues): ?FormError
     {
         $empty = $value === null || $value === '' || $value === [];
-        return $empty ? new Violation($this->message, $field, 'required') : null;
+        return $empty ? new FormError($this->message, $field, 'required') : null;
     }
 
     /** @return array<string,string|int|float|bool|null> */

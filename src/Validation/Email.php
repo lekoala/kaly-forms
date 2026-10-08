@@ -4,21 +4,21 @@ declare(strict_types=1);
 
 namespace Kaly\Forms\Validation;
 
-use Kaly\Forms\Violation;
+use Kaly\Forms\FormError;
 
 final readonly class Email implements Rule
 {
-    public function validate(string $field, mixed $value, array $allValues): ?Violation
+    public function validate(string $field, mixed $value, array $allValues): ?FormError
     {
         if ($value === null || $value === '') {
             return null;
         }
         if (!is_scalar($value) && !$value instanceof \Stringable) {
-            return new Violation('Enter a valid email address', $field, 'email');
+            return new FormError('Enter a valid email address', $field, 'email');
         }
 
         return filter_var((string) $value, FILTER_VALIDATE_EMAIL) === false
-            ? new Violation('Enter a valid email address', $field, 'email')
+            ? new FormError('Enter a valid email address', $field, 'email')
             : null;
     }
 

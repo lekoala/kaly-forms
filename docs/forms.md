@@ -44,15 +44,15 @@ The template does not need to enumerate or understand the fields.
 ## Re-render submitted values and errors
 
 ```php
+use Kaly\Forms\FormError;
 use Kaly\Forms\FormState;
-use Kaly\Forms\Violation;
 
 $form = $form->withState(FormState::from(
     values: [
         'email' => 'wrong@example.test',
     ],
-    violations: [
-        new Violation('This account cannot sign in', 'email'),
+    errors: [
+        new FormError('This account cannot sign in', 'email'),
     ],
 ));
 ```

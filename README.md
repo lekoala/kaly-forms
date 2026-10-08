@@ -18,7 +18,7 @@ HTTP request
   -> mapper / input DTO                (Kaly RequestInput, Slim code, ...)
   -> structural validation             (optional kaly-forms rules)
   -> application/business validation   (authoritative)
-  -> FormState(values, violations)
+  -> FormState(values, errors)
   -> Form
   -> HTML renderer
 ```
@@ -39,7 +39,7 @@ $form = $forms->create(...)->withState($state);
 
 ### 1. Simple login form
 
-Named arguments, built-in fields, structural browser/server rules, server violations:
+Named arguments, built-in fields, structural browser/server rules, server errors:
 
 ```php
 $form = $forms->create(
@@ -111,9 +111,9 @@ This lets JavaScript own the rich UI while the normal HTML form still owns submi
 
 ```text
 Field/Form definitions   immutable-ish semantic schema
-FormState                submitted values + violations
+FormState                submitted values + errors
 Renderer                 HTML policy/theme
-Form                      composes the three and is HtmlRenderable
+Form                     composes the three and is HtmlRenderable
 ```
 
 ### The form may render itself, without owning HTML policy
@@ -126,11 +126,13 @@ Form                      composes the three and is HtmlRenderable
 
 while allowing a Kaly application, Slim application or a package to inject a different renderer/theme.
 
-For auto-escaping engines (Twig/Latte), an integration adapter should convert `HtmlRenderable::toHtml()` to the engine's native safe-markup type. The template should still only receive `form`.
+For auto-escaping engines (Twig/Latte), optional bridges convert `HtmlRenderable::toHtml()` to the engine's native safe-markup type, so the template only receives `form`. kaly-tpl and plain PHP do not auto-escape, so `<?= $form ?>` already works. See [`docs/integrations/templates.md`](docs/integrations/templates.md).
 
 ### Server validation remains authoritative
 
-The library ships only **structural** rules that can also project to native HTML attributes (`required`, `minlength`, ...). Business rules stay in the application and are merged into `FormState` as violations.
+The library ships only **structural** rules that can also project to native HTML attributes (`required`, `minlength`, ...). Business rules stay in the application and are merged into `FormState` as `FormError` values.
+
+`StructuralValidator` is an **optional standalone** validator: convenient for a light application, but when the application already owns validation (Kaly, Symfony Validator, a domain service, ...) that layer stays the server authority. Do not run both for the same submission unless intentional. See [`docs/architecture.md`](docs/architecture.md).
 
 ### Interaction metadata, not a JS framework
 
@@ -159,9 +161,11 @@ The form library should not become a workflow engine.
 - trusted HTML block / custom element field
 - semantic nodes: heading / text / fieldset / group + layout intentions
 - custom node renderer registry + theme + render profiles
-- FormState + violations
+- FormState + errors
 - structural rules: required, length, email, numeric
+- optional `StructuralValidator` (standalone)
 - interaction metadata: condition + remote options
+- optional template bridges: Twig / Latte (`Kaly\Forms\Bridge\*`)
 
 ## Explicit non-goals
 
@@ -177,14 +181,14 @@ The form library should not become a workflow engine.
 
 ## Kaly integration
 
-Kaly already owns request input mapping, violations, CSRF and rendering adapters. The integration can stay thin:
+Kaly already owns request input mapping, validation, CSRF and rendering adapters. The integration can stay thin:
 
 ```php
 $result = $inputs->mapResult($request, RegistrationInput::class);
 
 $state = FormState::from(
     values: $result->values(),
-    violations: KalyViolationAdapter::from($result->validation()),
+    errors: KalyFormErrors::fromValidation($result->validation()),
 );
 
 $form = $registrationForm->create(
@@ -209,7 +213,7 @@ $renderer = new HtmlRenderer();
 $forms = new FormFactory($renderer);
 
 $form = $forms->create(...);
-$state = FormState::from($request->getParsedBody() ?? [], $violations);
+$state = FormState::from($request->getParsedBody() ?? [], $errors);
 
 return $response->withBody(stream((string) $form->withState($state)));
 ```

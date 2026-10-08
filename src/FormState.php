@@ -8,20 +8,20 @@ final readonly class FormState
 {
     /**
      * @param array<string,mixed> $values
-     * @param list<Violation> $violations
+     * @param list<FormError> $errors
      */
     public function __construct(
         private array $values = [],
-        private array $violations = [],
+        private array $errors = [],
     ) {}
 
     /**
      * @param array<string,mixed> $values
-     * @param list<Violation> $violations
+     * @param list<FormError> $errors
      */
-    public static function from(array $values = [], array $violations = []): self
+    public static function from(array $values = [], array $errors = []): self
     {
-        return new self($values, $violations);
+        return new self($values, $errors);
     }
 
     public function value(string $name, mixed $default = null): mixed
@@ -35,26 +35,26 @@ final readonly class FormState
         return $this->values;
     }
 
-    /** @return list<Violation> */
-    public function violations(): array
+    /** @return list<FormError> */
+    public function errors(): array
     {
-        return $this->violations;
+        return $this->errors;
     }
 
-    /** @return list<Violation> */
+    /** @return list<FormError> */
     public function errorsFor(string $field): array
     {
-        return array_values(array_filter($this->violations, static fn(Violation $v): bool => $v->field === $field));
+        return array_values(array_filter($this->errors, static fn(FormError $e): bool => $e->field === $field));
     }
 
-    /** @return list<Violation> */
+    /** @return list<FormError> */
     public function globalErrors(): array
     {
-        return array_values(array_filter($this->violations, static fn(Violation $v): bool => $v->field === null));
+        return array_values(array_filter($this->errors, static fn(FormError $e): bool => $e->field === null));
     }
 
     public function isValid(): bool
     {
-        return $this->violations === [];
+        return $this->errors === [];
     }
 }

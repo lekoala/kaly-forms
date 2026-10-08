@@ -9,6 +9,7 @@ use Kaly\Forms\Field\Field;
 use Kaly\Forms\Field\FileField;
 use Kaly\Forms\Field\MultipleSelectField;
 use Kaly\Forms\Field\RadioGroupField;
+use Kaly\Forms\FormError;
 use Kaly\Forms\FormState;
 use Kaly\Forms\Html;
 use Kaly\Forms\Node\ColumnsLayout;
@@ -19,7 +20,6 @@ use Kaly\Forms\Node\Layout;
 use Kaly\Forms\Node\StackLayout;
 use Kaly\Forms\Validation\Checked;
 use Kaly\Forms\Validation\Required;
-use Kaly\Forms\Violation;
 
 /**
  * Stable extension toolkit for node renderers: state, recursion, escaping and theme access.
@@ -72,8 +72,8 @@ final class RenderContext
         return $this->state->value($field->name);
     }
 
-    /** @return list<Violation> */
-    public function violations(Field $field): array
+    /** @return list<FormError> */
+    public function errors(Field $field): array
     {
         return $this->state->errorsFor($field->name);
     }
@@ -81,7 +81,7 @@ final class RenderContext
     /** @return array<string,string|int|float|bool|null> */
     public function attributes(RenderPart $part, ?FormNode $node): array
     {
-        $invalid = $node instanceof Field && $this->violations($node) !== [];
+        $invalid = $node instanceof Field && $this->errors($node) !== [];
         $required = false;
         if ($node instanceof Field) {
             foreach ($node->rules as $rule) {
@@ -254,7 +254,7 @@ final class RenderContext
         if ($field->help !== null) {
             $out .= '<div' . $this->attrs($this->attributes(RenderPart::Help, $field)) . '>' . $this->e($field->help) . '</div>';
         }
-        foreach ($this->violations($field) as $error) {
+        foreach ($this->errors($field) as $error) {
             $out .=
                 '<div'
                 . $this->attrs($this->attributes(RenderPart::Errors, $field))
@@ -284,7 +284,7 @@ final class RenderContext
         if ($field->help !== null) {
             $out .= '<div' . $this->attrs($this->attributes(RenderPart::Help, $field)) . '>' . $this->e($field->help) . '</div>';
         }
-        foreach ($this->violations($field) as $error) {
+        foreach ($this->errors($field) as $error) {
             $out .=
                 '<div'
                 . $this->attrs($this->attributes(RenderPart::Errors, $field))

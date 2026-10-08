@@ -15,7 +15,7 @@ $result = $inputs->mapResult($request, RegistrationInput::class);
 
 $state = FormState::from(
     values: $result->values(),
-    violations: KalyViolationAdapter::from($result->validation()),
+    errors: KalyFormErrors::fromValidation($result->validation()),
 );
 
 $form = $registrationForm->create(/* presentation definition */)
@@ -26,7 +26,7 @@ return new View('registration/edit', ['form' => $form]);
 
 Kaly integration may additionally provide:
 
-- conversion from Kaly `ValidationResult`/`Violation`;
+- conversion from Kaly `ValidationResult`/`Violation` into `FormError` (already resolved text), owned by the application adapter, not by the core;
 - renderer integration so `HtmlRenderable` is marked safe in Twig/Latte only after `toHtml()` has escaped its components;
 - helpers to inject CSRF hidden fields or route-generated endpoint URLs at form construction time.
 
@@ -50,7 +50,7 @@ A Slim application can provide values directly from parsed request data:
 ```php
 $state = FormState::from(
     values: (array) ($request->getParsedBody() ?? []),
-    violations: $violations,
+    errors: $errors,
 );
 
 $form = $definition->withState($state);
@@ -74,15 +74,18 @@ The application's validator and CSRF middleware remain unchanged.
 
 A self-rendering object needs an adapter because auto-escaping engines will otherwise escape the generated HTML.
 
-The integration should convert `HtmlRenderable::toHtml()` to the engine's native safe-markup representation.
-
-The template API can remain intentionally small:
+`kaly-forms` ships optional bridges that convert `HtmlRenderable::toHtml()` to the engine's native safe-markup representation, so the template API stays intentionally small:
 
 ```twig
 {{ form }}
 ```
 
 Do not require the template to understand a separate `form_start()` / `form_row()` DSL unless an application explicitly wants low-level layout control.
+
+- Twig: `Kaly\Forms\Bridge\Twig\FormExtension` (`twig/twig`, safe `{{ form }}`);
+- Latte: `Kaly\Forms\Bridge\Latte\FormExtension` (`latte/latte`).
+
+kaly-tpl and plain PHP do not auto-escape, so `<?= $form ?>` already works and no bridge is needed. See [`integrations/templates.md`](integrations/templates.md).
 
 ## Design systems
 
@@ -102,4 +105,5 @@ Semantic application widgets can still use custom `Field` types where the contro
 
 ## Example integrations
 
+- [`integrations/templates.md`](integrations/templates.md) — Twig and Latte bridges for `HtmlRenderable`, plus the kaly-tpl/plain PHP usage.
 - [`integrations/filepond.md`](integrations/filepond.md) — FilePond v5 upload enhancement (sync + async) over the same `FileField` definition.

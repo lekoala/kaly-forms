@@ -3,14 +3,38 @@
   "description": "Small framework-independent server-first forms DSL with progressive enhancement metadata",
   "type": "library",
   "license": "MIT",
+  "authors": [
+    {
+      "name": "Thomas",
+      "email": "thomas@lekoala.be"
+    }
+  ],
+  "keywords": [
+    "forms",
+    "html",
+    "server-side-rendering",
+    "progressive-enhancement",
+    "framework-independent"
+  ],
+  "homepage": "https://github.com/lekoala/kaly-forms",
+  "support": {
+    "issues": "https://github.com/lekoala/kaly-forms/issues",
+    "source": "https://github.com/lekoala/kaly-forms"
+  },
   "require": {
     "php": "^8.3",
     "ext-mbstring": "*"
   },
   "require-dev": {
     "carthage-software/mago": "^1.50",
+    "latte/latte": "^3.1",
     "phpstan/phpstan": "^2.3",
-    "phpunit/phpunit": "^12"
+    "phpunit/phpunit": "^12",
+    "twig/twig": "^3.30"
+  },
+  "suggest": {
+    "latte/latte": "Idiomatic Latte output through Kaly\\Forms\\Bridge\\Latte\\FormExtension",
+    "twig/twig": "Idiomatic Twig output through Kaly\\Forms\\Bridge\\Twig\\FormExtension, including a safe {{ form }}"
   },
   "autoload": {
     "psr-4": {

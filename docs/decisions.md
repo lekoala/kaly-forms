@@ -4,9 +4,30 @@
 
 Symfony Form solves a broader problem: bidirectional data mapping, normalized/model/view data, transformers, nested object graphs, form types, extensions, events and theming.
 
-Those features are useful when an application needs them. `kaly-forms` deliberately starts with a narrower goal: server-rendered form presentation and interaction metadata over values + violations supplied by the application.
+Those features are useful when an application needs them. `kaly-forms` deliberately starts with a narrower goal: server-rendered form presentation and interaction metadata over values + errors supplied by the application.
 
 Using Symfony Form as a third-party library or migration bridge remains valid.
+
+## Structural rules vs application validation
+
+`kaly-forms` ships small structural rules so a light application can validate a
+submission and project the same constraints to native HTML. `StructuralValidator`
+is an **optional standalone** validator for that purpose.
+
+An application that already owns validation (Kaly, Symfony Validator, a domain
+service, ...) must keep that layer as the server authority and pass its result
+into `FormState` as `FormError` objects. Running both validators on the same
+submission is allowed but must be deliberate. The library never requires the
+structural layer and the application layer to stay automatically synchronized:
+rich server validation and HTML constraints overlap, and pretending they must
+always match would turn the form into a business-rule source of truth.
+
+The boundary is:
+
+```text
+Field structural metadata  -> HTML constraints -> StructuralValidator (optional)
+Application validation     -> authoritative
+```
 
 ## Why not infer the UI from an input DTO?
 

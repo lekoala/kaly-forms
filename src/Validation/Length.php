@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Kaly\Forms\Validation;
 
-use Kaly\Forms\Violation;
+use Kaly\Forms\FormError;
 
 final readonly class Length implements Rule
 {
@@ -13,21 +13,21 @@ final readonly class Length implements Rule
         private ?int $max = null,
     ) {}
 
-    public function validate(string $field, mixed $value, array $allValues): ?Violation
+    public function validate(string $field, mixed $value, array $allValues): ?FormError
     {
         if ($value === null || $value === '') {
             return null;
         }
         if (!is_scalar($value) && !$value instanceof \Stringable) {
-            return new Violation('Invalid value', $field, 'type');
+            return new FormError('Invalid value', $field, 'type');
         }
 
         $length = mb_strlen((string) $value, 'UTF-8');
         if ($this->min !== null && $length < $this->min) {
-            return new Violation("Must contain at least {$this->min} characters", $field, 'min_length');
+            return new FormError("Must contain at least {$this->min} characters", $field, 'min_length');
         }
         if ($this->max !== null && $length > $this->max) {
-            return new Violation("Must contain at most {$this->max} characters", $field, 'max_length');
+            return new FormError("Must contain at most {$this->max} characters", $field, 'max_length');
         }
 
         return null;

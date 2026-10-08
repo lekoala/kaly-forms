@@ -13,7 +13,7 @@ request / existing model
         ↓
 application/framework mapping
         ↓
-values + violations
+values + errors
         ↓
 FormState
         ↓
@@ -42,12 +42,12 @@ Definitions should be safe to reuse. Submitted values and errors do not mutate t
 
 ### Form state
 
-`FormState` contains values and violations for one render:
+`FormState` contains values and errors for one render:
 
 ```php
 $state = FormState::from(
     values: $submitted,
-    violations: $violations,
+    errors: $errors,
 );
 
 $form = $form->withState($state);
@@ -67,6 +67,33 @@ Rules such as required/length/email are intentionally small. They may serve two 
 2. projection to native HTML attributes such as `required` or `minlength`.
 
 They are not a replacement for application/business validation.
+
+The two layers overlap by nature, but they are distinct responsibilities:
+
+```text
+Field structural metadata
+required / email / minLength / max / pattern
+        |
+        v
+HTML constraints
+        | optionally
+        v
+StructuralValidator
+       (optional, standalone)
+
+Application validation
+cross-field / availability / ownership / domain rules
+        |
+        v
+authoritative server validation
+```
+
+`StructuralValidator` is an optional standalone validator, convenient for a
+light Slim/PSR-7 application. An application that already uses an external
+validation layer should use that layer as the server authority, translate its
+result into `FormError` objects and pass them into `FormState`. Do not run both
+validators for the same submission unless this is intentional: the library never
+claims the two layers must be synchronized automatically.
 
 ### Rendering
 
@@ -150,7 +177,11 @@ The core must not depend on:
 - a router;
 - a CSRF implementation.
 
-Framework adapters may bridge these concerns explicitly.
+Framework adapters may bridge these concerns explicitly. Optional adapters under
+`Kaly\Forms\Bridge\*` (Twig, Latte) are the documented exception: each one
+requires its engine as an optional dependency, is loaded only when used, and
+never changes the core (`src/` outside `Bridge/`) dependency set. Engines with
+explicit escaping (kaly-tpl, plain PHP) need no adapter.
 
 ## Rich forms
 

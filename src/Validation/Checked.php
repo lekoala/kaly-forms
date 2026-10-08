@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Kaly\Forms\Validation;
 
-use Kaly\Forms\Violation;
+use Kaly\Forms\FormError;
 
 /**
  * A single checkbox must be checked.
@@ -20,10 +20,10 @@ final readonly class Checked implements Rule
         private string $message = 'This checkbox must be checked',
     ) {}
 
-    public function validate(string $field, mixed $value, array $allValues): ?Violation
+    public function validate(string $field, mixed $value, array $allValues): ?FormError
     {
         $checked = $value === true || $value === 1 || $value === '1' || $value === 'on';
-        return $checked ? null : new Violation($this->message, $field, 'checked');
+        return $checked ? null : new FormError($this->message, $field, 'checked');
     }
 
     /** @return array<string,string|int|float|bool|null> */

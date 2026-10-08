@@ -12,7 +12,7 @@ The library owns **form presentation and interaction metadata**. It does not own
 
 1. **Form definition, state, validation and rendering stay distinct.**
    - `Field` / `Form` describe presentation.
-   - `FormState` contains values and violations for one render.
+   - `FormState` contains values and errors for one render.
    - structural `Rule` objects describe simple constraints that may project to HTML.
    - application/business validation remains authoritative outside the library.
    - `RendererInterface` owns HTML policy.
@@ -90,6 +90,15 @@ The core should ship the common HTML controls and extension seams:
 - custom field renderer registry.
 
 Specialized application widgets should normally be custom fields outside the package.
+
+### Template engine bridges
+
+Optional `Kaly\Forms\Bridge\{Twig,Latte}` adapters convert `HtmlRenderable` to each
+engine's native safe type. They are the only place allowed to reference a template
+engine: each requires its engine as an optional dependency, is loaded only when
+used, and must not move any rendering policy into the core. The core (`src/`
+outside `Bridge/`) stays engine-agnostic. Engines with explicit escaping
+(kaly-tpl, plain PHP) need no adapter: `<?= $form ?>` already works.
 
 ## Review questions
 
