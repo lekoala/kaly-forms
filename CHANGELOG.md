@@ -4,6 +4,14 @@ All notable changes to this project are documented here. This project follows
 [Semantic Versioning](https://semver.org/) and is currently pre-1.0: the public
 API may change between minor releases until 1.0.
 
+## Unreleased
+
+### Fixed
+
+- Radio and checkbox group wrappers now use `RenderPart::Fieldset`, matching
+  explicit fieldsets. `DefaultTheme` preserves their `form-field` and
+  `is-invalid` classes.
+
 ## 0.1.0
 
 First experimental release. API is deliberately not frozen yet.
