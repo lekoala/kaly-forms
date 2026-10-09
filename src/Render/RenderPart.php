@@ -8,6 +8,7 @@ namespace Kaly\Forms\Render;
 enum RenderPart
 {
     case Form;
+    /** Individual field wrapper (<div>). */
     case Field;
     case Label;
     case Control;
@@ -15,6 +16,7 @@ enum RenderPart
     case Errors;
     case Actions;
     case Group;
+    /** Explicit fieldset or a group of radio/checkbox controls (<fieldset>). */
     case Fieldset;
     case Heading;
     case Text;

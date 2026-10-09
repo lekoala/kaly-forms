@@ -274,7 +274,7 @@ final class RenderContext
     {
         $out =
             '<fieldset'
-            . $this->attrs(array_merge($this->attributes(RenderPart::Field, $field), $this->conditionAttributes($field->visibleWhen)))
+            . $this->attrs(array_merge($this->attributes(RenderPart::Fieldset, $field), $this->conditionAttributes($field->visibleWhen)))
             . '>';
         if ($field->label !== null) {
             $out .= '<legend>' . $this->e($field->label) . '</legend>';

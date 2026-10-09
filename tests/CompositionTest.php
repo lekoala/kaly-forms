@@ -6,6 +6,7 @@ namespace Kaly\Forms\Tests;
 
 use Kaly\Forms\Action\SubmitAction;
 use Kaly\Forms\Fields;
+use Kaly\Forms\FormError;
 use Kaly\Forms\FormFactory;
 use Kaly\Forms\FormState;
 use Kaly\Forms\Html;
@@ -106,6 +107,71 @@ final class CompositionTest extends TestCase
         $this->assertStringContainsString('class="prefixed-control"', $themed);
         // Same structure: label still before control.
         $this->assertLessThan(strpos($themed, '<input'), strpos($themed, '</label>'));
+    }
+
+    public function testThemeReceivesSemanticWrapperPartsAndOriginalNodes(): void
+    {
+        $fields = new Fields();
+        $text = $fields->text('name', label: 'Name');
+        $radio = $fields->radio('level', label: 'Level', choices: ['a' => 'A']);
+        $checkboxes = $fields->checkboxGroup('interests', label: 'Interests', choices: ['php' => 'PHP']);
+        $fieldset = new Fieldset(legend: 'Contact', children: []);
+        $group = new Group(children: []);
+        $theme = new class implements FormTheme {
+            /** @var list<array{RenderPart, ?FormNode, bool}> */
+            public array $calls = [];
+
+            public function attributes(RenderPart $part, ?FormNode $node, ThemeContext $context): array
+            {
+                if (in_array($part, [RenderPart::Field, RenderPart::Fieldset, RenderPart::Group], true)) {
+                    $this->calls[] = [$part, $node, $context->invalid()];
+                }
+                return [];
+            }
+        };
+        $profile = new RenderProfile($theme, NodeRendererRegistry::defaults());
+        $form = (new FormFactory(profile: $profile))->create(name: 'a', action: '/a', children: [
+            $text,
+            $radio,
+            $checkboxes,
+            $fieldset,
+            $group,
+        ]);
+
+        $form->withState(FormState::from(errors: [new FormError('Choose a level', 'level')]))->toHtml();
+
+        $this->assertSame(
+            [
+                [RenderPart::Field,    $text,       false],
+                [RenderPart::Fieldset, $radio,      true],
+                [RenderPart::Fieldset, $checkboxes, false],
+                [RenderPart::Fieldset, $fieldset,   false],
+                [RenderPart::Group,    $group,      false],
+            ],
+            $theme->calls,
+        );
+    }
+
+    public function testDefaultThemePreservesFieldGroupClassesAcrossRenders(): void
+    {
+        $fields = new Fields();
+        $form = (new FormFactory())->create(name: 'a', action: '/a', children: [
+            $fields->radio('level', label: 'Level', choices: ['a' => 'A']),
+            $fields->checkboxGroup('interests', label: 'Interests', choices: ['php' => 'PHP']),
+            new Fieldset(legend: 'Contact', children: []),
+        ]);
+        $state = FormState::from(errors: [
+            new FormError('Choose a level', 'level'),
+            new FormError('Choose an interest', 'interests'),
+        ]);
+        $invalid = (string) $form->withState($state);
+        $valid = (string) $form;
+
+        $this->assertSame(2, substr_count($invalid, '<fieldset class="form-field is-invalid">'));
+        $this->assertSame(2, substr_count($valid, '<fieldset class="form-field">'));
+        $this->assertStringNotContainsString('is-invalid', $valid);
+        $this->assertStringContainsString('<fieldset><legend>Contact</legend>', $invalid);
+        $this->assertStringContainsString('<fieldset><legend>Contact</legend>', $valid);
     }
 
     public function testStructuralOverrideThroughNodeRendererObject(): void
