@@ -25,9 +25,10 @@ $csrfToken = is_string($csrfToken) ? $csrfToken : '';
 
 $fields = new Fields();
 
+$defaults = NodeRendererRegistry::defaults();
 $renderers = NodeRendererRegistry::defaults();
-$renderers->register(FileField::class, static function (FormNode $node, RenderContext $context): Html {
-    $inner = NodeRendererRegistry::defaults()->render($node, $context);
+$renderers->register(FileField::class, static function (FormNode $node, RenderContext $context) use ($defaults): Html {
+    $inner = $defaults->render($node, $context);
     return new Html('<file-pond>' . $inner->value() . '</file-pond>');
 });
 $profile = new RenderProfile(new DefaultTheme(), $renderers);

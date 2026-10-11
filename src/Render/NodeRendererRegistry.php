@@ -66,8 +66,16 @@ final class NodeRendererRegistry
             return $this->renderers[$class]($node, $context);
         }
 
+        // Closest registered ancestor class wins, then the first registered
+        // interface: registration order must not let a base renderer shadow
+        // a more specific one.
+        for ($parent = get_parent_class($node); $parent !== false; $parent = get_parent_class($parent)) {
+            if (isset($this->renderers[$parent])) {
+                return $this->renderers[$parent]($node, $context);
+            }
+        }
         foreach ($this->renderers as $registered => $renderer) {
-            if ($node instanceof $registered) {
+            if (interface_exists($registered) && $node instanceof $registered) {
                 return $renderer($node, $context);
             }
         }
@@ -164,9 +172,9 @@ final class NodeRendererRegistry
                     'name' => $field->name,
                     'value' => $optionValue,
                     'checked' => (string) $optionValue === $value,
-                    'required' => $context->radioRequired($field, $index),
+                    ...$context->radioRequiredAttributes($field, $index),
                     'data-kf-field' => $field->name,
-                    ...$context->controlAttributes($field),
+                    ...self::groupItemAttributes($context->controlAttributes($field), $index),
                 ])
                 . '> '
                 . $context->e($label)
@@ -208,6 +216,7 @@ final class NodeRendererRegistry
     {
         $selected = $context->listValues($field);
         $out = '';
+        $index = 0;
         foreach ($field->choices as $optionValue => $label) {
             $out .=
                 '<label><input'
@@ -218,13 +227,28 @@ final class NodeRendererRegistry
                     'checked' => in_array((string) $optionValue, $selected, true),
                     'data-kf-field' => $field->name,
                     'data-kf-value-kind' => 'list',
-                    ...$context->controlAttributes($field),
+                    ...self::groupItemAttributes($context->controlAttributes($field), $index++),
                 ])
                 . '> '
                 . $context->e($label)
                 . '</label>';
         }
         return $context->fieldGroup($field, $out);
+    }
+
+    /**
+     * Control attributes shared by every box of a group: a custom id would be
+     * duplicated, so it is suffixed with the item index.
+     *
+     * @param array<string,string|int|float|bool|null> $attributes
+     * @return array<string,string|int|float|bool|null>
+     */
+    private static function groupItemAttributes(array $attributes, int $index): array
+    {
+        if (isset($attributes['id']) && $attributes['id'] !== '') {
+            $attributes['id'] = $attributes['id'] . '-' . $index;
+        }
+        return $attributes;
     }
 
     private static function renderTimeControl(TimeField $field, RenderContext $context): Html
@@ -237,8 +261,6 @@ final class NodeRendererRegistry
                 'type' => 'time',
                 'data-kf-field' => $field->name,
                 'value' => $context->textValue($context->value($field)),
-                'min' => $field->min,
-                'max' => $field->max,
                 ...$context->ruleAttributes($field),
                 ...$context->controlAttributes($field),
             ])
@@ -256,8 +278,6 @@ final class NodeRendererRegistry
                 'type' => 'datetime-local',
                 'data-kf-field' => $field->name,
                 'value' => $context->textValue($context->value($field)),
-                'min' => $field->min,
-                'max' => $field->max,
                 ...$context->ruleAttributes($field),
                 ...$context->controlAttributes($field),
             ])
@@ -275,9 +295,6 @@ final class NodeRendererRegistry
                 'type' => 'number',
                 'data-kf-field' => $field->name,
                 'value' => $context->textValue($context->value($field)),
-                'min' => $field->min,
-                'max' => $field->max,
-                'step' => $field->step,
                 ...$context->ruleAttributes($field),
                 ...$context->controlAttributes($field),
             ])
@@ -288,7 +305,17 @@ final class NodeRendererRegistry
     private static function renderReadonlyControl(ReadonlyField $field, RenderContext $context): Html
     {
         $value = $context->textValue($context->value($field));
-        $out = '<span' . $context->attrs($context->controlAttributes($field)) . '>' . $context->e($value) . '</span>';
+        // A span is not labelable: the label is referenced by id instead of `for`.
+        $out =
+            '<span'
+            . $context->attrs([
+                'id' => $context->controlId($field),
+                'aria-labelledby' => $field->label !== null ? $context->labelId($field) : null,
+                ...$context->controlAttributes($field),
+            ])
+            . '>'
+            . $context->e($value)
+            . '</span>';
         $out .=
             '<input'
             . $context->attrs([
@@ -297,7 +324,7 @@ final class NodeRendererRegistry
                 'value' => $value,
             ])
             . '>';
-        return $context->fieldRow($field, $out);
+        return $context->fieldRow($field, $out, labelFor: false);
     }
 
     private static function renderFileControl(FileField $field, RenderContext $context): Html
@@ -409,6 +436,12 @@ final class NodeRendererRegistry
                 ...$context->controlAttributes($field),
             ])
             . '>';
+        // Remote options are loaded by JS: keep the current value selectable
+        // on re-render. Its label is the value itself unless the application
+        // passes the known option in `choices`.
+        if ($field->remote !== null && $value !== '' && !self::hasChoice($field->choices, $value)) {
+            $out .= self::renderSelectOption($value, $value, true, $context);
+        }
         foreach ($field->choices as $optionValue => $choice) {
             if ($choice instanceof OptionGroup) {
                 $out .= '<optgroup label="' . $context->e($choice->label) . '">';
@@ -421,6 +454,23 @@ final class NodeRendererRegistry
             $out .= self::renderSelectOption($optionValue, $choice, (string) $optionValue === $value, $context);
         }
         return $context->fieldRow($field, $out . '</select>');
+    }
+
+    /** @param array<string|int,string|OptionGroup> $choices */
+    private static function hasChoice(array $choices, string $value): bool
+    {
+        foreach ($choices as $optionValue => $choice) {
+            if ($choice instanceof OptionGroup) {
+                foreach (array_keys($choice->choices) as $subValue) {
+                    if ((string) $subValue === $value) {
+                        return true;
+                    }
+                }
+            } elseif ((string) $optionValue === $value) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static function renderSelectOption(string|int $optionValue, string $label, bool $selected, RenderContext $context): string
@@ -479,8 +529,6 @@ final class NodeRendererRegistry
                 'type' => 'date',
                 'data-kf-field' => $field->name,
                 'value' => $context->textValue($context->value($field)),
-                'min' => $field->min,
-                'max' => $field->max,
                 ...$context->ruleAttributes($field),
                 ...$context->controlAttributes($field),
             ])

@@ -6,6 +6,7 @@ namespace Kaly\Forms\Field;
 
 use Kaly\Forms\Interaction\Condition;
 use Kaly\Forms\Validation\Required;
+use Kaly\Forms\Validation\TemporalRange;
 
 /** A local date and time: semantic model only, values stay submission strings. */
 class DateTimeField extends Field
@@ -21,6 +22,10 @@ class DateTimeField extends Field
         array $attributes = [],
         ?Condition $visibleWhen = null,
     ) {
-        parent::__construct($name, $label, $help, $attributes, $required ? [new Required()] : [], $visibleWhen);
+        $rules = [new TemporalRange(TemporalRange::DATETIME, $min, $max)];
+        if ($required) {
+            array_unshift($rules, new Required());
+        }
+        parent::__construct($name, $label, $help, $attributes, $rules, $visibleWhen);
     }
 }

@@ -24,7 +24,7 @@ final class EmailField extends Field
         if ($required) {
             array_unshift($rules, new Required());
         }
-        $attributes['autocomplete'] = $autocomplete;
+        $attributes += ['autocomplete' => $autocomplete];
 
         parent::__construct($name, $label, $help, $attributes, $rules, $visibleWhen);
     }

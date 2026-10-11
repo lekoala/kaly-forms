@@ -6,6 +6,7 @@ namespace Kaly\Forms\Field;
 
 use Kaly\Forms\Interaction\Condition;
 use Kaly\Forms\Validation\Required;
+use Kaly\Forms\Validation\TemporalRange;
 
 /**
  * A calendar date: semantic model only, no date handling.
@@ -27,6 +28,10 @@ class DateField extends Field
         array $attributes = [],
         ?Condition $visibleWhen = null,
     ) {
-        parent::__construct($name, $label, $help, $attributes, $required ? [new Required()] : [], $visibleWhen);
+        $rules = [new TemporalRange(TemporalRange::DATE, $min, $max)];
+        if ($required) {
+            array_unshift($rules, new Required());
+        }
+        parent::__construct($name, $label, $help, $attributes, $rules, $visibleWhen);
     }
 }

@@ -82,15 +82,7 @@ final class RenderContext
     public function attributes(RenderPart $part, ?FormNode $node): array
     {
         $invalid = $node instanceof Field && $this->errors($node) !== [];
-        $required = false;
-        if ($node instanceof Field) {
-            foreach ($node->rules as $rule) {
-                if ($rule instanceof Required || $rule instanceof Checked) {
-                    $required = true;
-                    break;
-                }
-            }
-        }
+        $required = $node instanceof Field && $this->hasRequiredRule($node);
         $disabled = $node instanceof Field && (bool) ($node->attributes['disabled'] ?? false);
         $layout = $node instanceof Group ? $node->layout : null;
         return $this->theme->attributes($part, $node, new ThemeContext($invalid, $disabled, $required, $layout));
@@ -113,10 +105,20 @@ final class RenderContext
         return $merged;
     }
 
-    /** @return array<string,string|int|float|bool|null> */
+    /**
+     * Theme + field attributes, plus the aria error/help association. Radio
+     * and checkbox groups only get aria-invalid per box: their description
+     * belongs to the wrapping fieldset (see fieldGroup()).
+     *
+     * @return array<string,string|int|float|bool|null>
+     */
     public function controlAttributes(Field $field): array
     {
-        return $this->mergeAttributes($this->attributes(RenderPart::Control, $field), $field->attributes);
+        $aria = $this->ariaAttributes($field);
+        if ($field instanceof RadioGroupField || $field instanceof CheckboxGroupField) {
+            unset($aria['aria-describedby']);
+        }
+        return [...$aria, ...$this->mergeAttributes($this->attributes(RenderPart::Control, $field), $field->attributes)];
     }
 
     /** @return array<string,string|int|float|bool|null> */
@@ -150,7 +152,7 @@ final class RenderContext
             return $attrs;
         }
         if (is_array($expected)) {
-            $attrs['data-kf-visible-value'] = json_encode($expected);
+            $attrs['data-kf-visible-value'] = json_encode($expected, JSON_THROW_ON_ERROR);
             $attrs['data-kf-visible-type'] = 'list';
             return $attrs;
         }
@@ -165,16 +167,16 @@ final class RenderContext
      * Conditionally visible fields never project `required`: an inactive
      * branch must not block native validation (server skips it too).
      * This covers both a condition on the field itself and a condition on
-     * an ancestor Group/Fieldset. Checkbox groups never project `required`
-     * per box (that would mean "all boxes required", not "at least one").
+     * an ancestor Group/Fieldset. They carry `data-kf-required` instead so
+     * the optional JS can restore `required` once the branch is visible.
+     * Other constraints (maxlength, min...) only apply to non-empty values
+     * and are kept. Checkbox groups never project `required` per box (that
+     * would mean "all boxes required", not "at least one").
      *
      * @return array<string,string|int|float|bool|null>
      */
     public function ruleAttributes(Field $field): array
     {
-        if ($field->visibleWhen !== null || $this->inConditionalBranch) {
-            return [];
-        }
         if ($field instanceof CheckboxGroupField) {
             return [];
         }
@@ -182,7 +184,51 @@ final class RenderContext
         foreach ($field->rules as $rule) {
             $attrs = [...$attrs, ...$rule->htmlAttributes()];
         }
+        if ($this->isConditional($field) && array_key_exists('required', $attrs)) {
+            $deferred = $attrs['required'] !== false && $attrs['required'] !== null;
+            unset($attrs['required']);
+            if ($deferred) {
+                $attrs['data-kf-required'] = true;
+            }
+        }
         return $attrs;
+    }
+
+    private function isConditional(Field $field): bool
+    {
+        return $field->visibleWhen !== null || $this->inConditionalBranch;
+    }
+
+    /**
+     * Error/help association for the control: aria-invalid and
+     * aria-describedby pointing at the ids fieldRow()/fieldGroup() emit.
+     *
+     * @return array<string,string|int|float|bool|null>
+     */
+    public function ariaAttributes(Field $field): array
+    {
+        $describedBy = [];
+        if ($field->help !== null) {
+            $describedBy[] = $this->helpId($field);
+        }
+        $errors = $this->errors($field);
+        foreach (array_keys($errors) as $index) {
+            $describedBy[] = $this->errorId($field, $index);
+        }
+        return [
+            'aria-invalid' => $errors !== [] ? 'true' : null,
+            'aria-describedby' => $describedBy !== [] ? implode(' ', $describedBy) : null,
+        ];
+    }
+
+    public function helpId(Field $field): string
+    {
+        return $this->controlId($field) . '-help';
+    }
+
+    public function errorId(Field $field, int $index): string
+    {
+        return $this->controlId($field) . '-error-' . $index;
     }
 
     /**
@@ -191,9 +237,25 @@ final class RenderContext
      */
     public function radioRequired(RadioGroupField $field, int $index): bool
     {
-        if ($field->visibleWhen !== null || $this->inConditionalBranch || $index !== 0) {
-            return false;
+        return !$this->isConditional($field) && $index === 0 && $this->hasRequiredRule($field);
+    }
+
+    /**
+     * Required projection for one radio: native `required` on the first radio,
+     * or `data-kf-required` (restored by the optional JS) inside a conditional branch.
+     *
+     * @return array<string,string|int|float|bool|null>
+     */
+    public function radioRequiredAttributes(RadioGroupField $field, int $index): array
+    {
+        if ($index !== 0 || !$this->hasRequiredRule($field)) {
+            return [];
         }
+        return $this->isConditional($field) ? ['data-kf-required' => true] : ['required' => true];
+    }
+
+    private function hasRequiredRule(Field $field): bool
+    {
         foreach ($field->rules as $rule) {
             if ($rule instanceof Required || $rule instanceof Checked) {
                 return true;
@@ -233,67 +295,85 @@ final class RenderContext
         return $this->idFor($field->name);
     }
 
-    public function fieldRow(Field $field, string $control): Html
+    /**
+     * Labeled row for one control. With $labelFor = false (non-labelable
+     * control such as a read-only display), the label gets labelId() instead
+     * of a `for`, and the control should reference it with aria-labelledby.
+     */
+    public function fieldRow(Field $field, string $control, bool $labelFor = true): Html
     {
         $out =
             '<div'
             . $this->attrs(array_merge($this->attributes(RenderPart::Field, $field), $this->conditionAttributes($field->visibleWhen)))
             . '>';
         if ($field->label !== null) {
+            $association = $labelFor ? ['for' => $this->controlId($field)] : ['id' => $this->labelId($field)];
             $out .=
                 '<label'
-                . $this->attrs($this->attributes(RenderPart::Label, $field))
-                . ' for="'
-                . $this->e($this->controlId($field))
-                . '">'
+                . $this->attrs([...$this->attributes(RenderPart::Label, $field), ...$association])
+                . '>'
                 . $this->e($field->label)
                 . '</label>';
         }
-        $out .= $control;
-
-        if ($field->help !== null) {
-            $out .= '<div' . $this->attrs($this->attributes(RenderPart::Help, $field)) . '>' . $this->e($field->help) . '</div>';
-        }
-        foreach ($this->errors($field) as $error) {
-            $out .=
-                '<div'
-                . $this->attrs($this->attributes(RenderPart::Errors, $field))
-                . ' role="alert">'
-                . $this->e($error->message)
-                . '</div>';
-        }
+        $out .= $control . $this->fieldMessages($field);
 
         return new Html($out . '</div>');
     }
 
+    public function labelId(Field $field): string
+    {
+        return $this->controlId($field) . '-label';
+    }
+
     /**
      * Semantic group wrapper: fieldset + legend, no for/id association.
-     * Used for radio/checkbox groups which are multiple controls.
+     * Used for radio/checkbox groups which are multiple controls; help and
+     * errors are referenced from the fieldset.
      */
     public function fieldGroup(Field $field, string $control): Html
     {
+        $aria = $this->ariaAttributes($field);
         $out =
             '<fieldset'
-            . $this->attrs(array_merge($this->attributes(RenderPart::Fieldset, $field), $this->conditionAttributes($field->visibleWhen)))
+            . $this->attrs([
+                ...$this->attributes(RenderPart::Fieldset, $field),
+                ...$this->conditionAttributes($field->visibleWhen),
+                'aria-describedby' => $aria['aria-describedby'],
+            ])
             . '>';
         if ($field->label !== null) {
             $out .= '<legend>' . $this->e($field->label) . '</legend>';
         }
-        $out .= $control;
+        $out .= $control . $this->fieldMessages($field);
 
+        return new Html($out . '</fieldset>');
+    }
+
+    /**
+     * Help and error messages with the ids ariaAttributes() references.
+     * No role="alert" here: every error would be announced at once on load;
+     * the global error summary is the live announcement.
+     */
+    private function fieldMessages(Field $field): string
+    {
+        $out = '';
         if ($field->help !== null) {
-            $out .= '<div' . $this->attrs($this->attributes(RenderPart::Help, $field)) . '>' . $this->e($field->help) . '</div>';
-        }
-        foreach ($this->errors($field) as $error) {
             $out .=
                 '<div'
-                . $this->attrs($this->attributes(RenderPart::Errors, $field))
-                . ' role="alert">'
+                . $this->attrs([...$this->attributes(RenderPart::Help, $field), 'id' => $this->helpId($field)])
+                . '>'
+                . $this->e($field->help)
+                . '</div>';
+        }
+        foreach ($this->errors($field) as $index => $error) {
+            $out .=
+                '<div'
+                . $this->attrs([...$this->attributes(RenderPart::Errors, $field), 'id' => $this->errorId($field, $index)])
+                . '>'
                 . $this->e($error->message)
                 . '</div>';
         }
-
-        return new Html($out . '</fieldset>');
+        return $out;
     }
 
     /**
@@ -343,11 +423,21 @@ final class RenderContext
         return '';
     }
 
-    /** @param array<string,string|int|float|bool|null> $attributes */
+    /**
+     * Attribute values are escaped; attribute names cannot be (escaping does
+     * not stop a space or `=` from starting a new attribute), so invalid names
+     * are rejected instead.
+     *
+     * @param array<string,string|int|float|bool|null> $attributes
+     */
     public function attrs(array $attributes): string
     {
         $out = '';
         foreach ($attributes as $name => $value) {
+            $name = (string) $name;
+            if ($name === '' || preg_match('/[\s"\'>\/=\x00-\x1F\x7F]/', $name) === 1) {
+                throw new \InvalidArgumentException(sprintf('Invalid HTML attribute name "%s"', $name));
+            }
             if ($value === null || $value === false) {
                 continue;
             }

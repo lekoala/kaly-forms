@@ -6,11 +6,43 @@ API may change between minor releases until 1.0.
 
 ## Unreleased
 
+### Added
+
+- `Range` (numeric min/max/step) and `TemporalRange` (date/time/datetime-local
+  format + min/max) structural rules. `NumericField`, `DateField`, `TimeField`
+  and `DateTimeField` now express their bounds as rules, so `StructuralValidator`
+  enforces what the HTML projects.
+- `Form::unmatchedErrors()`: field errors with no displayed field (absent from
+  the tree or on a `HiddenField`). `HtmlRenderer` shows them with global errors.
+- Accessibility: help and errors get ids, controls get `aria-describedby` and
+  `aria-invalid`; radio/checkbox groups reference them from the fieldset.
+
+### Changed
+
+- Per-field errors no longer carry `role="alert"`; only global errors do.
+- Conditional fields keep their non-required constraints (`maxlength`, `min`...)
+  and render `data-kf-required` instead of `required`; `enhance.js` restores
+  `required` when the branch is visible.
+- `enhance.js` reads controls in a hidden branch as empty (chained conditions
+  match the server) and re-applies conditions on form reset.
+- Explicit `attributes` win over convenience parameters (`rows`, `autocomplete`).
+- `ReadonlyField` label references the value with `aria-labelledby` instead of
+  an invalid `for`.
+
 ### Fixed
 
 - Radio and checkbox group wrappers now use `RenderPart::Fieldset`, matching
   explicit fieldsets. `DefaultTheme` preserves their `form-field` and
   `is-invalid` classes.
+- Invalid HTML attribute names and custom element tags are rejected instead of
+  being written into markup (attribute injection).
+- A remote `ChoiceField` keeps its submitted value as a selected option on re-render.
+- `Length` counts CRLF as one character, like the browser `maxlength`.
+- `Form` rejects methods other than get/post/dialog (browsers send them as GET).
+- Field names containing brackets are rejected (`FormState` is flat).
+- Closest registered ancestor renderer wins, regardless of registration order.
+- A custom `id` on a radio/checkbox group is suffixed per box, not duplicated.
+- List conditions with invalid UTF-8 throw instead of rendering broken metadata.
 
 ## 0.1.0
 

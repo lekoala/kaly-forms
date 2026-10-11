@@ -78,7 +78,7 @@ final class ContractsTest extends TestCase
             $fields->text('company', label: 'Company', required: true, visibleWhen: Condition::equals('kind', 'pro')),
         ]);
 
-        $this->assertStringNotContainsString('required', $html);
+        $this->assertDoesNotMatchRegularExpression('/\srequired[\s>=]/', $html);
         $this->assertStringContainsString('data-kf-visible-field="kind"', $html);
     }
 
@@ -229,7 +229,7 @@ final class ContractsTest extends TestCase
             ),
         ]);
 
-        $this->assertStringNotContainsString('required', $html);
+        $this->assertDoesNotMatchRegularExpression('/\srequired[\s>=]/', $html);
         $this->assertStringContainsString('data-kf-visible-field="kind"', $html);
     }
 
@@ -254,7 +254,7 @@ final class ContractsTest extends TestCase
         $this->assertNotFalse($inner);
         $this->assertLessThan($inner, $outer);
         // Innermost field is inside a conditional branch: no native required.
-        $this->assertStringNotContainsString('required', $html);
+        $this->assertDoesNotMatchRegularExpression('/\srequired[\s>=]/', $html);
     }
 
     public function testSingleOptionCheckboxGroupIsMarkedAsList(): void

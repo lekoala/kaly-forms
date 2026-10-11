@@ -33,7 +33,7 @@ class TextField extends Field
             $rules[] = new Length($minLength, $maxLength);
         }
         if ($autocomplete !== null) {
-            $attributes['autocomplete'] = $autocomplete;
+            $attributes += ['autocomplete' => $autocomplete];
         }
 
         parent::__construct($name, $label, $help, $attributes, $rules, $visibleWhen);

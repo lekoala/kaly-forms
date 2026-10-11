@@ -167,7 +167,7 @@ final class CompositionTest extends TestCase
         $invalid = (string) $form->withState($state);
         $valid = (string) $form;
 
-        $this->assertSame(2, substr_count($invalid, '<fieldset class="form-field is-invalid">'));
+        $this->assertSame(2, substr_count($invalid, '<fieldset class="form-field is-invalid"'));
         $this->assertSame(2, substr_count($valid, '<fieldset class="form-field">'));
         $this->assertStringNotContainsString('is-invalid', $valid);
         $this->assertStringContainsString('<fieldset><legend>Contact</legend>', $invalid);

@@ -64,9 +64,12 @@ function readNodes(form, name) {
   return [legacy];
 }
 
-function currentValue(form, name) {
+// isActive(el) tells whether a control sits in an effectively visible branch.
+// A control in a hidden branch is disabled, hence not submitted: it reads as
+// null, exactly like the server sees it (chained conditions stay in sync).
+function currentValue(form, name, isActive) {
   const nodes = readNodes(form, name).filter((el) => !el.hasAttribute('data-kf-mirror-for'));
-  const els = nodes.length > 0 ? nodes : readNodes(form, name);
+  const els = (nodes.length > 0 ? nodes : readNodes(form, name)).filter(isActive);
   if (els.length === 0) return null;
   const first = els[0];
   if (first instanceof HTMLSelectElement && first.multiple) {
@@ -100,7 +103,9 @@ function currentValue(form, name) {
 function snapshotControl(el) {
   if (!('kfOrigDisabled' in el.dataset)) {
     el.dataset.kfOrigDisabled = el.disabled ? '1' : '';
-    el.dataset.kfOrigRequired = el.required ? '1' : '';
+    // Conditional fields render data-kf-required instead of required, so
+    // native validation never blocks a branch that starts hidden.
+    el.dataset.kfOrigRequired = el.required || 'kfRequired' in el.dataset ? '1' : '';
   }
 }
 
@@ -119,8 +124,8 @@ function setBranchState(row, visible) {
   }
 }
 
-function ownVisibility(form, row) {
-  const actual = currentValue(form, row.dataset.kfVisibleField);
+function ownVisibility(form, row, isActive) {
+  const actual = currentValue(form, row.dataset.kfVisibleField, isActive);
   const expected = parseExpected(row);
   const op = row.dataset.kfVisibleOp;
   if (op === 'filled') {
@@ -132,26 +137,31 @@ function ownVisibility(form, row) {
 
 function applyConditions(form) {
   const rows = Array.from(form.querySelectorAll('[data-kf-visible-field]'));
-  const own = new Map();
-  for (const row of rows) own.set(row, ownVisibility(form, row));
   // A branch is effectively visible only when its own condition holds AND
-  // every conditional ancestor is effectively visible. Without this, a
-  // nested branch whose condition is true would re-enable controls inside
-  // a hidden parent (leaving them enabled, required and submitted).
+  // its conditional ancestor is effectively visible. Without this, a nested
+  // branch whose condition is true would re-enable controls inside a hidden
+  // parent (leaving them enabled, required and submitted). Conditions read
+  // values through isActive, so a field in a hidden branch counts as empty.
   const effective = new Map();
+  const pending = new Set();
+  const closestRow = (el) => {
+    const row = el.closest('[data-kf-visible-field]');
+    return row && form.contains(row) ? row : null;
+  };
   const isEffective = (row) => {
     if (effective.has(row)) return effective.get(row);
-    let visible = own.get(row);
-    let parent = row.parentElement;
-    while (visible && parent && parent !== form) {
-      if (parent.matches && parent.matches('[data-kf-visible-field]')) {
-        if (!own.has(parent)) own.set(parent, ownVisibility(form, parent));
-        visible = visible && isEffective(parent);
-      }
-      parent = parent.parentElement;
-    }
+    // Circular conditions: fall back to the current state instead of looping.
+    if (pending.has(row)) return !row.hidden;
+    pending.add(row);
+    const parent = row.parentElement ? closestRow(row.parentElement) : null;
+    const visible = (parent === null || isEffective(parent)) && ownVisibility(form, row, isActive);
+    pending.delete(row);
     effective.set(row, visible);
     return visible;
+  };
+  const isActive = (el) => {
+    const row = closestRow(el);
+    return row === null || isEffective(row);
   };
   // Document order is outer-before-inner, so restoring a parent before
   // disabling a hidden child (and vice versa) always ends correctly.
@@ -167,6 +177,8 @@ for (const form of document.querySelectorAll('form')) {
   applyConditions(form);
   form.addEventListener('input', () => applyConditions(form));
   form.addEventListener('change', () => applyConditions(form));
+  // reset fires before the controls are restored.
+  form.addEventListener('reset', () => setTimeout(() => applyConditions(form)));
 }
 
 // Remote option metadata is deliberately transport-only here. An application can

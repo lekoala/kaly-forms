@@ -6,6 +6,7 @@ namespace Kaly\Forms\Field;
 
 use Kaly\Forms\Interaction\Condition;
 use Kaly\Forms\Validation\Numeric;
+use Kaly\Forms\Validation\Range;
 use Kaly\Forms\Validation\Required;
 
 /**
@@ -26,6 +27,9 @@ class NumericField extends Field
         ?Condition $visibleWhen = null,
     ) {
         $rules = [new Numeric()];
+        if ($min !== null || $max !== null || $step !== null) {
+            $rules[] = new Range($min, $max, $step);
+        }
         if ($required) {
             array_unshift($rules, new Required());
         }

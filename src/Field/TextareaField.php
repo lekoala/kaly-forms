@@ -28,7 +28,7 @@ final class TextareaField extends Field
         if ($minLength !== null || $maxLength !== null) {
             $rules[] = new Length($minLength, $maxLength);
         }
-        $attributes['rows'] = $rows;
+        $attributes += ['rows' => $rows];
 
         parent::__construct($name, $label, $help, $attributes, $rules, $visibleWhen);
     }

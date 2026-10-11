@@ -22,7 +22,9 @@ final readonly class Length implements Rule
             return new FormError('Invalid value', $field, 'type');
         }
 
-        $length = mb_strlen((string) $value, 'UTF-8');
+        // Browsers count a line break as one character for maxlength but
+        // submit it as CRLF: count it once, like the native constraint.
+        $length = mb_strlen(str_replace("\r\n", "\n", (string) $value), 'UTF-8');
         if ($this->min !== null && $length < $this->min) {
             return new FormError("Must contain at least {$this->min} characters", $field, 'min_length');
         }

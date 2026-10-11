@@ -31,7 +31,7 @@ final class HtmlRenderer implements RendererInterface
             ...$form->attributes,
         ])) . '>';
 
-        foreach ($form->state()->globalErrors() as $error) {
+        foreach ([...$form->state()->globalErrors(), ...$form->unmatchedErrors()] as $error) {
             $out .=
                 '<div'
                 . $context->attrs($context->attributes(RenderPart::Errors, null))

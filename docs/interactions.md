@@ -49,6 +49,8 @@ new ChoiceField(
 
 The server must validate the submitted canonical value again. A value having appeared in an autocomplete response never makes it trusted input.
 
+On re-render (for example after an error on another field), a submitted value missing from `choices` is kept as a selected option labeled with the value itself. To show a human label, look it up and pass it in `choices` (`choices: [$cityId => $cityName]`) when building the form for that render.
+
 ## Custom elements
 
 `CustomElementField` lets a richer browser widget coexist with native form submission.

@@ -141,7 +141,9 @@ final class FieldPackTest extends TestCase
             label: 'Code',
         )])->withState(FormState::from(['code' => '<B1>']));
 
-        $this->assertStringContainsString('<span>&lt;B1&gt;</span>', $html);
+        $this->assertStringContainsString('<span id="kf-a-code" aria-labelledby="kf-a-code-label">&lt;B1&gt;</span>', $html);
+        $this->assertStringContainsString('<label id="kf-a-code-label">Code</label>', $html);
+        $this->assertStringNotContainsString(' for="kf-a-code"', $html);
         $this->assertStringContainsString('type="hidden"', $html);
         $this->assertStringContainsString('name="code"', $html);
     }

@@ -25,6 +25,11 @@ abstract class Field implements FormNode
         if ($name === '') {
             throw new \InvalidArgumentException('Field name cannot be empty');
         }
+        // FormState is flat: a bracketed name would be submitted as a nested
+        // array by PHP and never matched back (no refill, no validation).
+        if (strpbrk($name, '[]') !== false) {
+            throw new \InvalidArgumentException(sprintf('Field name "%s" cannot contain brackets: nested names are not supported', $name));
+        }
     }
 
     /** @param array<string,mixed> $values */

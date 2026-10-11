@@ -28,7 +28,7 @@ if ($expected === '' || !is_string($provided) || !hash_equals($expected, $provid
 
 $dir = sys_get_temp_dir() . '/kaly-forms-demo-uploads';
 if (!is_dir($dir)) {
-    mkdir($dir, 0o777, true);
+    mkdir($dir, 0o700, true);
 }
 
 $method = $_SERVER['REQUEST_METHOD'] ?? '';
