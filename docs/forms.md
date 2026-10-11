@@ -119,6 +119,18 @@ Content nodes (not fields, constructed directly, never submitted):
 
 ## Field notes
 
+### Names are flat
+
+`FormState` is a flat `name => value` map. Field names cannot contain brackets, dots or whitespace: PHP would submit `user[email]` as a nested array and rewrite `a.b` or `a b` to `a_b`, so the value would never come back under the field name. Multi-value fields add `[]` to the submitted name themselves while keeping the logical name.
+
+Generated ids are form-scoped (`kf-<form>-<field>`, `attributes['id']` wins), with derived `-help`, `-label` and `-error-<n>` ids. Two fields that would render the same id throw a `LogicException` when the `Form` is built. Uniqueness is only guaranteed within one form.
+
+### Choices start empty
+
+`ChoiceField` renders a leading `<option value="">` by default, so a create form never submits the first choice implicitly; with `required: true` the browser refuses the empty option. Give it a label with `emptyLabel: 'Choose…'`, or remove it with `emptyLabel: null`.
+
+`strictChoices: true` (choice, radio, checkbox group, multiple select) adds the `InChoices` rule: the structural validator then rejects values outside the static list. It is opt-in, and refused on remote options.
+
 ### Readonly is presentation, not trust
 
 `ReadonlyField` preserves a value through HTML submission with a hidden input, which the client can always modify:

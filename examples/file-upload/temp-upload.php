@@ -15,6 +15,10 @@ declare(strict_types=1);
 // Separate requests need their own protection: the token travels in the
 // X-CSRF-Token header (see resolveRequest in filepond-async.php). The check
 // below is illustrative; use your framework CSRF in production.
+//
+// Demo only: GET/DELETE trust any id. A real endpoint must tie each upload
+// to its owner (session/user), expire unclaimed files, and enforce size and
+// type limits before the main form claims the id.
 
 $expected = $_SERVER['DEMO_CSRF_TOKEN'] ?? '';
 $expected = is_string($expected) ? $expected : '';
