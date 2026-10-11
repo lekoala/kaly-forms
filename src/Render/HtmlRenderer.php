@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace Kaly\Forms\Render;
 
 use Kaly\Forms\Action\SubmitAction;
+use Kaly\Forms\Field\Field;
 use Kaly\Forms\Form;
 use Kaly\Forms\Html;
+use Kaly\Forms\Node\ContainerNode;
+use Kaly\Forms\Node\FormNode;
 
 /**
  * Default form shell: renders the form element, global errors, node tree and actions zone.
@@ -31,11 +34,17 @@ final class HtmlRenderer implements RendererInterface
             ...$form->attributes,
         ])) . '>';
 
+        // Field errors shown here lost their row (inactive branch, hidden or
+        // unknown field): name the field when it has a label. Presentation
+        // only, the FormError message itself is never changed.
+        $labels = self::labels($form->children());
         foreach ([...$form->state()->globalErrors(), ...$form->unmatchedErrors()] as $error) {
+            $label = $error->field !== null ? $labels[$error->field] ?? null : null;
             $out .=
                 '<div'
                 . $context->attrs($context->attributes(RenderPart::Errors, null))
                 . ' role="alert">'
+                . ($label !== null ? '<strong>' . $context->e($label) . '</strong>: ' : '')
                 . $context->e($error->message)
                 . '</div>';
         }
@@ -59,6 +68,23 @@ final class HtmlRenderer implements RendererInterface
         }
 
         return new Html($out . '</form>');
+    }
+
+    /**
+     * @param list<FormNode> $nodes
+     * @return array<string,string> field name => label (first labeled field wins)
+     */
+    private static function labels(array $nodes): array
+    {
+        $labels = [];
+        foreach ($nodes as $node) {
+            if ($node instanceof Field && $node->label !== null) {
+                $labels[$node->name] ??= $node->label;
+            } elseif ($node instanceof ContainerNode) {
+                $labels += self::labels($node->children());
+            }
+        }
+        return $labels;
     }
 
     private function renderAction(SubmitAction $action, RenderContext $context): Html

@@ -70,6 +70,77 @@ $form = $forms->create(name: 'registration', action: '/registrations', children:
 
 The application's validator and CSRF middleware remain unchanged.
 
+## Render on error, redirect on success
+
+A failed submission does not need a session, flash storage or a redirect: answer the POST itself with the same form, re-rendered from `FormState`.
+
+```text
+GET  /profile/edit   -> render the form
+POST /profile        -> invalid: 422 + the form with values and errors
+                     -> valid:   run the use case, then 303 See Other to a GET page
+```
+
+Conceptually (`renderPage()`, `htmlResponse()` and `redirect()` stand for your framework):
+
+```php
+$values = (array) ($request->getParsedBody() ?? []);
+$errors = $validation->errors(); // list<FormError>, translated by the application
+
+if ($errors !== []) {
+    $form = $makeForm()->withState(FormState::from(
+        values: [...$values, '_csrf' => $csrf->currentToken()],
+        errors: $errors,
+    ));
+    return htmlResponse(renderPage('profile/edit', ['form' => $form]), 422);
+}
+
+$useCase->execute($command);
+return redirect('/profile', 303);
+```
+
+What the re-render guarantees:
+
+- text values, selections (select, radio, checkbox, groups) and errors come back; field errors are tied to their control (`aria-invalid`, `aria-describedby`), global errors are announced (`role="alert"`);
+- passwords and files are never re-injected: a file must be sent again;
+- an error that no visible row can show (unknown field, `HiddenField`, field in a branch inactive for the submitted values) is shown with the global errors, prefixed by the field label when there is one (presentation only: the `FormError` message is unchanged). Without JS, an error in an inactive branch therefore appears twice, globally and under its still-visible field; this is accepted.
+
+Showing such an error never activates the field: revealing the branch would bypass its condition. An error on a field whose condition is false usually points to submitted data out of sync, a business error that deserves a global message, or a condition that does not match the validation; fix it in the application.
+
+What stays with the application:
+
+- pass the *current* CSRF token in the values, not the submitted one;
+- reloading the 422 page re-posts the form; the browser asks first, and an invalid submission has no side effect;
+- multi-step flows keep their state in the application (a persisted draft), not in the form.
+
+### With sco-pe or another HTML-over-fetch enhancer
+
+Keep HTML as the response format, including for AJAX: the enhancer posts the native form and swaps the returned HTML, so errors never need a JSON encoding nor a client-side renderer.
+
+```php
+$scope = $request->getHeaderLine('Scope-Request') === 'true';
+
+if ($errors !== []) {
+    $form = $makeForm()->withState(FormState::from($values, $errors));
+    $html = $scope
+        ? renderFragment('profile/form', ['form' => $form])
+        : renderPage('profile/edit', ['form' => $form]);
+    return htmlResponse($html, 422)->withHeader('Vary', 'Scope-Request');
+}
+
+$useCase->execute($command);
+return $scope
+    ? response(204)->withHeader('Scope-Location', '/profile')
+    : redirect('/profile', 303);
+```
+
+If you use `assets/enhance.js` (or your own copy), re-apply it to swapped content; it is idempotent:
+
+```js
+document.addEventListener('scope:after-swap', (e) => enhanceForms(e.target));
+```
+
+A JSON API client is a different contract: serialize the same `FormError` list (`field`, `code`, `message`) as `application/problem+json` in the application. kaly-forms does not ship a JSON error format.
+
 ## Twig and Latte
 
 A self-rendering object needs an adapter because auto-escaping engines will otherwise escape the generated HTML.

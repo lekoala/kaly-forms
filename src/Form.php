@@ -9,7 +9,9 @@ use Kaly\Forms\Field\Field;
 use Kaly\Forms\Field\FileField;
 use Kaly\Forms\Field\HiddenField;
 use Kaly\Forms\Node\ContainerNode;
+use Kaly\Forms\Node\Fieldset;
 use Kaly\Forms\Node\FormNode;
+use Kaly\Forms\Node\Group;
 use Kaly\Forms\Node\InlineLayout;
 use Kaly\Forms\Node\Layout;
 use Kaly\Forms\Render\ControlIds;
@@ -113,17 +115,19 @@ final class Form implements HtmlRenderable
     }
 
     /**
-     * Errors that no rendered field row can display: their field is absent
-     * from the tree (renamed field, misnamed application error) or is a
-     * HiddenField. Renderers show them with the global errors so an invalid
-     * form never comes back without a message.
+     * Errors that no visible field row can display: their field is absent
+     * from the tree (renamed field, misnamed application error), is a
+     * HiddenField, or sits in a branch that is inactive for the state values
+     * (own condition or ancestor Group/Fieldset), which an enhancement would
+     * hide. Renderers show them with the global errors so an invalid form
+     * never comes back without a visible message.
      *
      * @return list<FormError>
      */
     public function unmatchedErrors(): array
     {
         $names = [];
-        self::collectDisplayedNames($this->children, $names);
+        self::collectDisplayedNames($this->children, $this->state->values(), $names);
         return array_values(array_filter(
             $this->state->errors(),
             static fn(FormError $e): bool => $e->field !== null && !isset($names[$e->field]),
@@ -131,16 +135,24 @@ final class Form implements HtmlRenderable
     }
 
     /**
+     * Same activity rules as StructuralValidator.
+     *
      * @param list<FormNode> $nodes
+     * @param array<string,mixed> $values
      * @param array<string,true> $names
      */
-    private static function collectDisplayedNames(array $nodes, array &$names): void
+    private static function collectDisplayedNames(array $nodes, array $values, array &$names): void
     {
         foreach ($nodes as $node) {
-            if ($node instanceof Field && !$node instanceof HiddenField) {
-                $names[$node->name] = true;
+            if ($node instanceof Field) {
+                if (!$node instanceof HiddenField && $node->isActiveFor($values)) {
+                    $names[$node->name] = true;
+                }
             } elseif ($node instanceof ContainerNode) {
-                self::collectDisplayedNames($node->children(), $names);
+                if (($node instanceof Group || $node instanceof Fieldset) && !$node->isActiveFor($values)) {
+                    continue;
+                }
+                self::collectDisplayedNames($node->children(), $values, $names);
             }
         }
     }

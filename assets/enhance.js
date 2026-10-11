@@ -185,13 +185,28 @@ function applyConditions(form) {
   }
 }
 
-for (const form of document.querySelectorAll('form')) {
-  applyConditions(form);
-  form.addEventListener('input', () => applyConditions(form));
-  form.addEventListener('change', () => applyConditions(form));
-  // reset fires before the controls are restored.
-  form.addEventListener('reset', () => setTimeout(() => applyConditions(form)));
+const enhanced = new WeakSet();
+
+// Idempotent: call it again on HTML swapped in after a failed submission,
+// e.g. document.addEventListener('scope:after-swap', (e) => enhanceForms(e.target)).
+// Forms already enhanced are re-evaluated, never bound twice. root may be the
+// document, a container, a form, or an element inside a form.
+function enhanceForms(root = document) {
+  let forms = root instanceof HTMLFormElement ? [root] : Array.from(root.querySelectorAll('form'));
+  if (forms.length === 0 && root instanceof Element && root.closest('form')) forms = [root.closest('form')];
+  for (const form of forms) {
+    applyConditions(form);
+    if (enhanced.has(form)) continue;
+    enhanced.add(form);
+    form.addEventListener('input', () => applyConditions(form));
+    form.addEventListener('change', () => applyConditions(form));
+    // reset fires before the controls are restored.
+    form.addEventListener('reset', () => setTimeout(() => applyConditions(form)));
+  }
 }
+
+window.enhanceForms = enhanceForms;
+enhanceForms(document);
 
 // Remote option metadata is deliberately transport-only here. An application can
 // attach its own autocomplete/select component to [data-kf-options-url] without

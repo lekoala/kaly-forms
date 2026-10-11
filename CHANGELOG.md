@@ -12,8 +12,10 @@ API may change between minor releases until 1.0.
   format + min/max) structural rules. `NumericField`, `DateField`, `TimeField`
   and `DateTimeField` now express their bounds as rules, so `StructuralValidator`
   enforces what the HTML projects.
-- `Form::unmatchedErrors()`: field errors with no displayed field (absent from
-  the tree or on a `HiddenField`). `HtmlRenderer` shows them with global errors.
+- `Form::unmatchedErrors()`: field errors with no visible field (absent from
+  the tree, on a `HiddenField`, or in a branch inactive for the state values).
+  `HtmlRenderer` shows them with global errors, prefixed by the field label
+  when the field has one.
 - Accessibility: help and errors get ids, controls get `aria-describedby` and
   `aria-invalid`; radio/checkbox groups reference them from the fieldset.
 - `ChoiceField::$emptyLabel`: a leading `<option value="">`, present by default
@@ -50,6 +52,8 @@ API may change between minor releases until 1.0.
   override (and bypass the validation of) the constructor parameters.
 - Field names cannot contain dots or whitespace (PHP rewrites them to `_`).
 - `assets/enhance.js` is now a reference example, not a supported API.
+  It exposes an idempotent `enhanceForms(root)` to re-apply conditions to
+  swapped-in HTML (sco-pe, htmx...).
 - `mago guard` removed from `composer test` and CI (no perimeter rules).
 
 ### Fixed
