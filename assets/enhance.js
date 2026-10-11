@@ -3,8 +3,9 @@
 // Condition (tested server side). Copy and adapt it, or use any client
 // library that reads the same attributes. Forms work without it.
 //
-// Conditional fields render data-kf-required instead of required; an
-// enhancement should restore required only while the branch is visible.
+// Conditional fields render data-kf-required/min/max/pattern instead of the
+// native attributes; an enhancement restores them only while the branch is
+// visible.
 //
 // Shared contract with PHP Condition::normalize/matches:
 // absent/unchecked => null, "" stays "" (null !== ""), scalars stringify,
@@ -105,26 +106,32 @@ function currentValue(form, name, isActive) {
   return null;
 }
 
+// Conditional fields render these constraints as data-kf-<name> (PHP
+// RenderContext::DEFERRED_CONSTRAINTS): native validation must not block a
+// branch that is inactive, so they are applied only while it is visible.
+const DEFERRED = ['required', 'min', 'max', 'pattern'];
+
+function deferredKey(name) {
+  return 'kf' + name[0].toUpperCase() + name.slice(1);
+}
+
 function snapshotControl(el) {
   if (!('kfOrigDisabled' in el.dataset)) {
     el.dataset.kfOrigDisabled = el.disabled ? '1' : '';
-    // Conditional fields render data-kf-required instead of required, so
-    // native validation never blocks a branch that starts hidden.
-    el.dataset.kfOrigRequired = el.required || 'kfRequired' in el.dataset ? '1' : '';
   }
 }
 
 function setBranchState(row, visible) {
   const controls = row.querySelectorAll('input, select, textarea, [data-kf-field]');
   for (const el of controls) {
-    if (!('disabled' in el) && !('required' in el)) continue;
+    if (!('disabled' in el)) continue;
     snapshotControl(el);
-    if (!visible) {
-      el.disabled = true;
-      if ('required' in el) el.required = false;
-    } else {
-      el.disabled = el.dataset.kfOrigDisabled === '1';
-      if ('required' in el) el.required = el.dataset.kfOrigRequired === '1';
+    el.disabled = visible ? el.dataset.kfOrigDisabled === '1' : true;
+    for (const name of DEFERRED) {
+      const key = deferredKey(name);
+      if (!(key in el.dataset)) continue;
+      if (visible) el.setAttribute(name, name === 'required' ? '' : el.dataset[key]);
+      else el.removeAttribute(name);
     }
   }
 }

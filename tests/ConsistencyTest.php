@@ -78,6 +78,82 @@ final class ConsistencyTest extends TestCase
         $this->assertSame([], $state->errorsFor('price'));
     }
 
+    public function testStepCheckDoesNotLoosenWithMagnitude(): void
+    {
+        $step1 = new \Kaly\Forms\Validation\Range(step: 1);
+        $this->assertNotNull($step1->validate('n', '1000000000.5', []));
+        $this->assertNotNull($step1->validate('n', '123456789012345.5', []));
+        $this->assertNull($step1->validate('n', '1000000000', []));
+        $this->assertNull($step1->validate('n', '-7', []));
+
+        $cents = new \Kaly\Forms\Validation\Range(step: '0.01');
+        $this->assertNull($cents->validate('n', '19.99', []));
+        $this->assertNull($cents->validate('n', '1000000000.01', []));
+        $this->assertNotNull($cents->validate('n', '1000000000.015', []));
+
+        $this->assertNull((new \Kaly\Forms\Validation\Range(step: 0.1))->validate('n', '0.3', []));
+        $this->assertNull((new \Kaly\Forms\Validation\Range(min: '0.5', step: 2))->validate('n', '4.5', []));
+        $this->assertNotNull((new \Kaly\Forms\Validation\Range(min: '0.5', step: 2))->validate('n', '4', []));
+        // Exponent notation falls back to floats with a fixed tolerance.
+        $this->assertNull($step1->validate('n', '1e3', []));
+        $this->assertNotNull($step1->validate('n', '1.5e0', []));
+    }
+
+    public function testTimeRangeMayWrapAroundMidnight(): void
+    {
+        $night = new TemporalRange(TemporalRange::TIME, min: '22:00', max: '06:00');
+        $this->assertNull($night->validate('t', '23:00', []));
+        $this->assertNull($night->validate('t', '02:00', []));
+        $this->assertNull($night->validate('t', '22:00', []));
+        $this->assertNull($night->validate('t', '06:00:00', []));
+        $this->assertSame('range', $night->validate('t', '12:00', [])?->code);
+        $this->assertSame('range', $night->validate('t', '06:00:01', [])?->code);
+    }
+
+    public function testInactiveBranchCannotBlockSubmissionWithoutJs(): void
+    {
+        $fields = new Fields();
+        $form = (new FormFactory())->create(name: 'a', action: '/a', children: [
+            $fields->numeric(
+                'n',
+                label: 'N',
+                required: true,
+                min: 1,
+                max: 9,
+                visibleWhen: \Kaly\Forms\Interaction\Condition::equals('k', 'x'),
+            ),
+            $fields->text('t', label: 'T', minLength: 2, maxLength: 5, visibleWhen: \Kaly\Forms\Interaction\Condition::equals('k', 'x')),
+        ]);
+        $html = (string) $form->withState(\Kaly\Forms\FormState::from(['n' => '0']));
+
+        $this->assertDoesNotMatchRegularExpression('/\s(required|min|max|pattern)[\s>=]/', $html);
+        $this->assertStringContainsString('data-kf-required data-kf-min="1" data-kf-max="9"', $html);
+        // Only edited values are checked against length constraints: kept natively.
+        $this->assertStringContainsString('minlength="2" maxlength="5"', $html);
+        $this->assertStringContainsString('step="1"', $html);
+        $this->assertTrue(
+            (new StructuralValidator())
+                ->validate($form, ['n' => '0'])
+                ->isValid(),
+        );
+    }
+
+    /** @return iterable<string,array{string}> */
+    public static function formOwnedAttributes(): iterable
+    {
+        yield 'method' => ['method'];
+        yield 'action' => ['action'];
+        yield 'enctype' => ['enctype'];
+        yield 'name' => ['name'];
+    }
+
+    #[DataProvider('formOwnedAttributes')]
+    public function testFormAttributesCannotOverrideOwnedParameters(string $attribute): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        (new FormFactory())->create(name: 'a', action: '/a', attributes: [$attribute => 'delete']);
+    }
+
     public function testFractionalSecondsCompareByValue(): void
     {
         $rule = new TemporalRange(TemporalRange::TIME, max: '12:00:00.1');

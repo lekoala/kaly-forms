@@ -162,16 +162,24 @@ final class RenderContext
     }
 
     /**
+     * Constraints a browser checks even on a value the user never edited
+     * (pre-filled or re-displayed). minlength/maxlength only apply to edited
+     * values and step has a native default, so they are not in this list.
+     */
+    public const array DEFERRED_CONSTRAINTS = ['required', 'min', 'max', 'pattern'];
+
+    /**
      * Native constraint projection.
      *
-     * Conditionally visible fields never project `required`: an inactive
-     * branch must not block native validation (server skips it too).
-     * This covers both a condition on the field itself and a condition on
-     * an ancestor Group/Fieldset. They carry `data-kf-required` instead so
-     * the optional JS can restore `required` once the branch is visible.
-     * Other constraints (maxlength, min...) only apply to non-empty values
-     * and are kept. Checkbox groups never project `required` per box (that
-     * would mean "all boxes required", not "at least one").
+     * Without JS, an inactive conditional branch stays enabled: any native
+     * constraint that can fail on a pre-filled value would block submission
+     * while the server skips the branch. Conditionally visible fields (own
+     * condition or ancestor Group/Fieldset) therefore render the constraints
+     * of DEFERRED_CONSTRAINTS as `data-kf-<name>` (e.g. data-kf-required,
+     * data-kf-min="1") so an enhancement can restore them while the branch is
+     * visible. maxlength/minlength/step are kept. Checkbox groups never
+     * project `required` per box (that would mean "all boxes required", not
+     * "at least one").
      *
      * @return array<string,string|int|float|bool|null>
      */
@@ -184,11 +192,17 @@ final class RenderContext
         foreach ($field->rules as $rule) {
             $attrs = [...$attrs, ...$rule->htmlAttributes()];
         }
-        if ($this->isConditional($field) && array_key_exists('required', $attrs)) {
-            $deferred = $attrs['required'] !== false && $attrs['required'] !== null;
-            unset($attrs['required']);
-            if ($deferred) {
-                $attrs['data-kf-required'] = true;
+        if (!$this->isConditional($field)) {
+            return $attrs;
+        }
+        foreach (self::DEFERRED_CONSTRAINTS as $name) {
+            if (!array_key_exists($name, $attrs)) {
+                continue;
+            }
+            $value = $attrs[$name];
+            unset($attrs[$name]);
+            if ($value !== false && $value !== null) {
+                $attrs['data-kf-' . $name] = $value;
             }
         }
         return $attrs;

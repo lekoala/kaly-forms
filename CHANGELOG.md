@@ -43,6 +43,11 @@ API may change between minor releases until 1.0.
   is refused: constraints have a single, server-validated source.
 - `NumericField` always projects and validates its step, 1 by default like the
   native control: pass `step: 'any'` or `'0.01'` for decimals.
+- Conditional fields also defer `min`, `max` and `pattern` (as `data-kf-min`...),
+  not only `required`: without JS, an inactive branch with a pre-filled value
+  can no longer block submission.
+- `Form` refuses `name`/`action`/`method`/`enctype` in `attributes`: they would
+  override (and bypass the validation of) the constructor parameters.
 - Field names cannot contain dots or whitespace (PHP rewrites them to `_`).
 - `assets/enhance.js` is now a reference example, not a supported API.
 - `mago guard` removed from `composer test` and CI (no perimeter rules).
@@ -57,7 +62,9 @@ API may change between minor releases until 1.0.
 - A remote `ChoiceField` keeps its submitted value as a selected option on re-render.
 - `Length` counts CRLF as one character, like the browser `maxlength`.
 - `TemporalRange` compares fractional seconds by value (`12:00:00.1` equals
-  `12:00:00.100`).
+  `12:00:00.100`), and supports time ranges wrapping around midnight.
+- `Range` checks the step exactly on plain decimals: the tolerance no longer
+  grows with the value (`1000000000.5` is off a step of 1).
 - `Form` rejects methods other than get/post/dialog (browsers send them as GET).
 - Field names containing brackets are rejected (`FormState` is flat).
 - Closest registered ancestor renderer wins, regardless of registration order.

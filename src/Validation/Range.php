@@ -49,13 +49,51 @@ final readonly class Range implements Rule
         if ($this->max !== null && $number > (float) $this->max) {
             return new FormError("Must be at most {$this->max}", $field, 'max');
         }
-        if ($this->step !== null && $this->step !== 'any') {
-            $steps = ($number - (float) ($this->min ?? 0)) / (float) $this->step;
-            if (abs($steps - round($steps)) > (1e-9 * max(1.0, abs($steps)))) {
-                return new FormError("Must be a multiple of {$this->step}", $field, 'step');
-            }
+        if ($this->step !== null && $this->step !== 'any' && !self::onStep($text, (string) ($this->min ?? 0), (string) $this->step)) {
+            return new FormError("Must be a multiple of {$this->step}", $field, 'step');
         }
         return null;
+    }
+
+    /**
+     * Whether value = base + n * step. Plain decimals are compared exactly as
+     * scaled integers (no float tolerance that grows with the value); exponent
+     * notation or out-of-range digits fall back to floats with a fixed tolerance.
+     */
+    private static function onStep(string $value, string $base, string $step): bool
+    {
+        $scale = max(self::decimals($value), self::decimals($base), self::decimals($step));
+        $v = self::scaled($value, $scale);
+        $b = self::scaled($base, $scale);
+        $s = self::scaled($step, $scale);
+        // Operands have at most 18 digits, so the difference cannot overflow.
+        if ($v !== null && $b !== null && $s !== null && $s > 0) {
+            return (($v - $b) % $s) === 0;
+        }
+        $steps = ((float) $value - (float) $base) / (float) $step;
+        return abs($steps - round($steps)) < 1e-9;
+    }
+
+    private static function decimals(string $number): int
+    {
+        $dot = strpos($number, '.');
+        return $dot === false ? 0 : strlen(rtrim(substr($number, $dot + 1), '0'));
+    }
+
+    /** "12.5" at scale 2 => 1250; null when not a plain decimal or too large for an int. */
+    private static function scaled(string $number, int $scale): ?int
+    {
+        $number = trim($number);
+        if ($scale > 15 || preg_match('/^([+-]?)(\d*)(?:\.(\d*))?$/', $number, $m) !== 1 || $m[2] === '' && ($m[3] ?? '') === '') {
+            return null;
+        }
+        $fraction = substr(str_pad($m[3] ?? '', $scale, '0'), 0, $scale);
+        $digits = ltrim($m[2] . $fraction, '0');
+        if (strlen($digits) > 18) {
+            return null;
+        }
+        $int = (int) ($digits === '' ? '0' : $digits);
+        return $m[1] === '-' ? -$int : $int;
     }
 
     /** @return array<string,string|int|float|bool|null> */

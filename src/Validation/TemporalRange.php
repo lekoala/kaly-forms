@@ -50,6 +50,19 @@ final readonly class TemporalRange implements Rule
             return new FormError($this->message, $field, 'format');
         }
         $key = $this->sortKey($value);
+        // HTML time ranges may wrap around midnight (min 22:00, max 06:00):
+        // valid values are then >= min OR <= max.
+        if (
+            $this->type === self::TIME
+            && $this->min !== null
+            && $this->max !== null
+            && $this->sortKey($this->max) < $this->sortKey($this->min)
+        ) {
+            if ($key < $this->sortKey($this->min) && $key > $this->sortKey($this->max)) {
+                return new FormError("Must be between {$this->min} and {$this->max}", $field, 'range');
+            }
+            return null;
+        }
         if ($this->min !== null && $key < $this->sortKey($this->min)) {
             return new FormError("Must be {$this->min} or later", $field, 'min');
         }

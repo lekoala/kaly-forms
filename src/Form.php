@@ -47,6 +47,13 @@ final class Form implements HtmlRenderable
                 $method,
             ));
         }
+        // These are owned by constructor parameters (and validated there):
+        // an attribute would silently override them at render time.
+        foreach (['name', 'action', 'method', 'enctype'] as $owned) {
+            if (array_key_exists($owned, $attributes)) {
+                throw new \InvalidArgumentException(sprintf('Form attribute "%s" must be set through the $%s parameter', $owned, $owned));
+            }
+        }
         // Fail at definition time: duplicate ids silently break labels and aria references.
         ControlIds::assertUnique($name, $children);
         $this->profile = $profile ?? RenderProfile::plain();
