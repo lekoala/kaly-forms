@@ -4,7 +4,7 @@ All notable changes to this project are documented here. This project follows
 [Semantic Versioning](https://semver.org/) and is currently pre-1.0: the public
 API may change between minor releases until 1.0.
 
-## Unreleased
+## 0.2.0
 
 ### Added
 
