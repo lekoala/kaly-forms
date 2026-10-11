@@ -63,7 +63,7 @@ $form = $forms->create(
 - conditional visibility metadata;
 - remote options endpoint metadata + CSRF metadata;
 - custom element rendering with a hidden native value mirror;
-- optional progressive enhancement (`assets/enhance.js`);
+- a reference progressive-enhancement example (`assets/enhance.js`);
 - whole-form rendering with `echo $form`.
 
 ### 3. Custom field type
@@ -136,7 +136,7 @@ The library ships only **structural** rules that can also project to native HTML
 
 ### Interaction metadata, not a JS framework
 
-Conditions and remote option sources are represented as metadata. The included JS is intentionally tiny and optional. An application may use sco-pe, custom elements, Alpine, Stimulus, vanilla JS, etc.
+Conditions and remote option sources are represented as metadata. `assets/enhance.js` is a tiny, untested reference example, not a supported API: the contract is the `data-kf-*` attributes and `Condition`, tested on the PHP side. An application may use sco-pe, custom elements, Alpine, Stimulus, vanilla JS, etc.
 
 ### Wizard/multi-step is outside the form core
 

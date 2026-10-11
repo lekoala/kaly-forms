@@ -14,10 +14,15 @@ enum RenderPart
     case Control;
     case Help;
     case Errors;
+    /** Actions zone wrapper (<div>). */
     case Actions;
+    /** One submit button inside the actions zone (theme gets a null node). */
+    case Action;
     case Group;
     /** Explicit fieldset or a group of radio/checkbox controls (<fieldset>). */
     case Fieldset;
+    /** Legend of a fieldset or of a radio/checkbox group. */
+    case Legend;
     case Heading;
     case Text;
 }

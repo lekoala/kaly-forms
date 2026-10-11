@@ -16,6 +16,15 @@ API may change between minor releases until 1.0.
   the tree or on a `HiddenField`). `HtmlRenderer` shows them with global errors.
 - Accessibility: help and errors get ids, controls get `aria-describedby` and
   `aria-invalid`; radio/checkbox groups reference them from the fieldset.
+- `ChoiceField::$emptyLabel`: a leading `<option value="">`, present by default
+  (blank label); pass `null` to omit it.
+- Opt-in `strictChoices` on choice/radio/checkbox-group/multi-select fields,
+  backed by the new `InChoices` rule. Refused on remote options: the
+  application validates those against its canonical source.
+- `RenderPart::Action` (submit buttons) and `RenderPart::Legend` (fieldset and
+  group legends) so themes can decorate them.
+- Id collisions (generated, explicit, and derived `-help`/`-label`/`-error-n`/
+  group item ids) throw a `LogicException` when the `Form` is built.
 
 ### Changed
 
@@ -28,6 +37,15 @@ API may change between minor releases until 1.0.
 - Explicit `attributes` win over convenience parameters (`rows`, `autocomplete`).
 - `ReadonlyField` label references the value with `aria-labelledby` instead of
   an invalid `for`.
+- `ChoiceField` renders an empty first option by default: a create form no
+  longer submits the first choice implicitly.
+- An attribute also projected by a field rule (`min`, `maxlength`, `required`...)
+  is refused: constraints have a single, server-validated source.
+- `NumericField` always projects and validates its step, 1 by default like the
+  native control: pass `step: 'any'` or `'0.01'` for decimals.
+- Field names cannot contain dots or whitespace (PHP rewrites them to `_`).
+- `assets/enhance.js` is now a reference example, not a supported API.
+- `mago guard` removed from `composer test` and CI (no perimeter rules).
 
 ### Fixed
 
@@ -38,6 +56,8 @@ API may change between minor releases until 1.0.
   being written into markup (attribute injection).
 - A remote `ChoiceField` keeps its submitted value as a selected option on re-render.
 - `Length` counts CRLF as one character, like the browser `maxlength`.
+- `TemporalRange` compares fractional seconds by value (`12:00:00.1` equals
+  `12:00:00.100`).
 - `Form` rejects methods other than get/post/dialog (browsers send them as GET).
 - Field names containing brackets are rejected (`FormState` is flat).
 - Closest registered ancestor renderer wins, regardless of registration order.

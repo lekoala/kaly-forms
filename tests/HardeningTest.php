@@ -89,7 +89,7 @@ final class HardeningTest extends TestCase
             $fields->choice('city', label: 'City', choices: ['42' => 'Paris'], remote: $remote),
         ]);
         $html = (string) $form->withState(FormState::from(['city' => '42']));
-        $this->assertSame(1, substr_count($html, '<option'));
+        $this->assertSame(1, substr_count($html, '<option value="42"'));
         $this->assertStringContainsString('<option value="42" selected>Paris</option>', $html);
 
         // A fixed select never invents an option for an unknown value.

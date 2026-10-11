@@ -11,6 +11,10 @@ use Kaly\Forms\Validation\Required;
 
 /**
  * A numeric value: submitted values stay strings, mapping to int/float/decimal belongs to the application.
+ *
+ * Like the native control, the step defaults to 1 (integers): pass a step
+ * such as '0.01' or 'any' to accept decimals. The step is always projected
+ * so the browser and the server apply the same one.
  */
 class NumericField extends Field
 {
@@ -26,10 +30,7 @@ class NumericField extends Field
         array $attributes = [],
         ?Condition $visibleWhen = null,
     ) {
-        $rules = [new Numeric()];
-        if ($min !== null || $max !== null || $step !== null) {
-            $rules[] = new Range($min, $max, $step);
-        }
+        $rules = [new Numeric(), new Range($min, $max, $step ?? 1)];
         if ($required) {
             array_unshift($rules, new Required());
         }

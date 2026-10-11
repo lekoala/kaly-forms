@@ -1,5 +1,10 @@
-// Optional progressive enhancement (demo-level, dependency-free).
-// Core rendering/validation works without this file.
+// Reference example of progressive enhancement (dependency-free, untested).
+// Not a supported API: the contract is the data-kf-* metadata and PHP
+// Condition (tested server side). Copy and adapt it, or use any client
+// library that reads the same attributes. Forms work without it.
+//
+// Conditional fields render data-kf-required instead of required; an
+// enhancement should restore required only while the branch is visible.
 //
 // Shared contract with PHP Condition::normalize/matches:
 // absent/unchecked => null, "" stays "" (null !== ""), scalars stringify,

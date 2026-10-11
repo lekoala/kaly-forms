@@ -27,8 +27,25 @@ abstract class Field implements FormNode
         }
         // FormState is flat: a bracketed name would be submitted as a nested
         // array by PHP and never matched back (no refill, no validation).
-        if (strpbrk($name, '[]') !== false) {
-            throw new \InvalidArgumentException(sprintf('Field name "%s" cannot contain brackets: nested names are not supported', $name));
+        // PHP also rewrites dots and spaces to underscores in parsed bodies.
+        if (preg_match('/[\[\].\s]/', $name) === 1) {
+            throw new \InvalidArgumentException(sprintf(
+                'Field name "%s" cannot contain brackets, dots or whitespace: PHP would not submit it under this name',
+                $name,
+            ));
+        }
+        // One source of truth per constraint: the server validates rules, so
+        // an attribute contradicting (or duplicating) a projected rule is refused.
+        foreach ($rules as $rule) {
+            foreach (array_keys($rule->htmlAttributes()) as $projected) {
+                if (array_key_exists($projected, $attributes)) {
+                    throw new \InvalidArgumentException(sprintf(
+                        'Field "%s": attribute "%s" is projected by a validation rule, set it through the field parameters',
+                        $name,
+                        $projected,
+                    ));
+                }
+            }
         }
     }
 

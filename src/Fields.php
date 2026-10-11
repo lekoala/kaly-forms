@@ -160,6 +160,8 @@ final class Fields
         ?RemoteOptions $remote = null,
         array $attributes = [],
         ?Condition $visibleWhen = null,
+        ?string $emptyLabel = '',
+        bool $strictChoices = false,
     ): ChoiceField {
         return $this->types->create(
             ChoiceField::class,
@@ -171,6 +173,8 @@ final class Fields
             remote: $remote,
             attributes: $attributes,
             visibleWhen: $visibleWhen,
+            emptyLabel: $emptyLabel,
+            strictChoices: $strictChoices,
         );
     }
 
@@ -258,6 +262,7 @@ final class Fields
         bool $required = false,
         array $attributes = [],
         ?Condition $visibleWhen = null,
+        bool $strictChoices = false,
     ): RadioGroupField {
         return $this->types->create(
             RadioGroupField::class,
@@ -268,6 +273,7 @@ final class Fields
             required: $required,
             attributes: $attributes,
             visibleWhen: $visibleWhen,
+            strictChoices: $strictChoices,
         );
     }
 
@@ -284,6 +290,7 @@ final class Fields
         ?int $size = null,
         array $attributes = [],
         ?Condition $visibleWhen = null,
+        bool $strictChoices = false,
     ): MultipleSelectField {
         return $this->types->create(
             MultipleSelectField::class,
@@ -295,6 +302,7 @@ final class Fields
             size: $size,
             attributes: $attributes,
             visibleWhen: $visibleWhen,
+            strictChoices: $strictChoices,
         );
     }
 
@@ -310,6 +318,7 @@ final class Fields
         bool $required = false,
         array $attributes = [],
         ?Condition $visibleWhen = null,
+        bool $strictChoices = false,
     ): CheckboxGroupField {
         return $this->types->create(
             CheckboxGroupField::class,
@@ -320,6 +329,7 @@ final class Fields
             required: $required,
             attributes: $attributes,
             visibleWhen: $visibleWhen,
+            strictChoices: $strictChoices,
         );
     }
 

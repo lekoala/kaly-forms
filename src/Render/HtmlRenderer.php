@@ -63,17 +63,11 @@ final class HtmlRenderer implements RendererInterface
 
     private function renderAction(SubmitAction $action, RenderContext $context): Html
     {
-        return new Html(
-            '<button'
-            . $context->attrs([
-                'type' => 'submit',
-                'name' => $action->name,
-                'value' => '1',
-                ...$action->attributes,
-            ])
-            . '>'
-            . $context->e($action->label)
-            . '</button>',
-        );
+        return new Html('<button' . $context->attrs($context->mergeAttributes($context->attributes(RenderPart::Action, null), [
+            'type' => 'submit',
+            'name' => $action->name,
+            'value' => '1',
+            ...$action->attributes,
+        ])) . '>' . $context->e($action->label) . '</button>');
     }
 }

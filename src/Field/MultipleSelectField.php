@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Kaly\Forms\Field;
 
 use Kaly\Forms\Interaction\Condition;
+use Kaly\Forms\Validation\InChoices;
 use Kaly\Forms\Validation\Required;
 
 /**
@@ -28,8 +29,13 @@ final class MultipleSelectField extends Field
         ?int $size = null,
         array $attributes = [],
         ?Condition $visibleWhen = null,
+        bool $strictChoices = false,
     ) {
-        parent::__construct($name, $label, $help, $attributes, $required ? [new Required()] : [], $visibleWhen);
+        $rules = $required ? [new Required()] : [];
+        if ($strictChoices) {
+            $rules[] = InChoices::fromChoices(OptionGroup::normalize($choices));
+        }
+        parent::__construct($name, $label, $help, $attributes, $rules, $visibleWhen);
         $this->choices = OptionGroup::normalize($choices);
         $this->size = $size;
     }

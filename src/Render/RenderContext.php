@@ -288,11 +288,7 @@ final class RenderContext
      */
     public function controlId(Field $field): string
     {
-        $custom = $field->attributes['id'] ?? null;
-        if (is_string($custom) && $custom !== '') {
-            return $custom;
-        }
-        return $this->idFor($field->name);
+        return ControlIds::controlId($this->formName, $field);
     }
 
     /**
@@ -342,7 +338,7 @@ final class RenderContext
             ])
             . '>';
         if ($field->label !== null) {
-            $out .= '<legend>' . $this->e($field->label) . '</legend>';
+            $out .= '<legend' . $this->attrs($this->attributes(RenderPart::Legend, $field)) . '>' . $this->e($field->label) . '</legend>';
         }
         $out .= $control . $this->fieldMessages($field);
 
@@ -452,11 +448,6 @@ final class RenderContext
 
     public function idFor(string $name): string
     {
-        $slug = (string) preg_replace('/[^A-Za-z0-9_-]+/', '-', $name);
-        if ($this->formName !== '') {
-            $form = (string) preg_replace('/[^A-Za-z0-9_-]+/', '-', $this->formName);
-            return 'kf-' . $form . '-' . $slug;
-        }
-        return 'field-' . $slug;
+        return ControlIds::defaultId($this->formName, $name);
     }
 }

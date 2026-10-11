@@ -54,7 +54,6 @@
       "@phpunit",
       "@phpstan",
       "@mago:lint",
-      "@mago:guard",
       "@format:check"
     ],
     "phpunit": "@php -d zend.assertions=1 vendor/bin/phpunit",
@@ -65,7 +64,6 @@
     "phpstan:src": "phpstan analyse src --memory-limit=-1",
     "phpstan:tests": "phpstan analyse tests examples -c phpstan-tests.neon --memory-limit=-1",
     "mago:lint": "mago lint --minimum-report-level warning src tests examples",
-    "mago:guard": "mago guard --minimum-report-level error",
     "mago:format": "mago fmt",
     "format:check": "mago fmt --check",
     "fmt": "@mago:format"

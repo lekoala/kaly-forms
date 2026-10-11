@@ -436,6 +436,9 @@ final class NodeRendererRegistry
                 ...$context->controlAttributes($field),
             ])
             . '>';
+        if ($field->emptyLabel !== null && !self::hasChoice($field->choices, '')) {
+            $out .= self::renderSelectOption('', $field->emptyLabel, false, $context);
+        }
         // Remote options are loaded by JS: keep the current value selectable
         // on re-render. Its label is the value itself unless the application
         // passes the known option in `choices`.
@@ -587,7 +590,12 @@ final class NodeRendererRegistry
         $renderers->register(Fieldset::class, static function (FormNode $node, RenderContext $context): Html {
             /** @var Fieldset $fieldset */ $fieldset = $node;
             $childContext = $fieldset->visibleWhen !== null ? $context->withConditionalBranch() : $context;
-            $out = '<legend>' . $context->e($fieldset->legend) . '</legend>';
+            $out =
+                '<legend'
+                . $context->attrs($context->attributes(RenderPart::Legend, $fieldset))
+                . '>'
+                . $context->e($fieldset->legend)
+                . '</legend>';
             foreach ($fieldset->children() as $child) {
                 $out .= $childContext->render($child)->value();
             }

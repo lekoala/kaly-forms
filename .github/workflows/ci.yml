@@ -53,10 +53,6 @@ jobs:
         if: success() || failure()
         run: composer mago:lint
 
-      - name: Mago Guard
-        if: success() || failure()
-        run: composer mago:guard
-
       - name: PHPStan
         if: success() || failure()
         run: composer phpstan

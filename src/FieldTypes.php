@@ -199,6 +199,8 @@ final class FieldTypes
         ?RemoteOptions $remote = null,
         array $attributes = [],
         ?Condition $visibleWhen = null,
+        ?string $emptyLabel = '',
+        bool $strictChoices = false,
     ): Field {
         return new ChoiceField(
             name: $name,
@@ -209,6 +211,8 @@ final class FieldTypes
             remote: $remote,
             attributes: $attributes,
             visibleWhen: $visibleWhen,
+            emptyLabel: $emptyLabel,
+            strictChoices: $strictChoices,
         );
     }
 
@@ -293,6 +297,7 @@ final class FieldTypes
         bool $required = false,
         array $attributes = [],
         ?Condition $visibleWhen = null,
+        bool $strictChoices = false,
     ): Field {
         return new RadioGroupField(
             name: $name,
@@ -302,6 +307,7 @@ final class FieldTypes
             required: $required,
             attributes: $attributes,
             visibleWhen: $visibleWhen,
+            strictChoices: $strictChoices,
         );
     }
 
@@ -318,6 +324,7 @@ final class FieldTypes
         ?int $size = null,
         array $attributes = [],
         ?Condition $visibleWhen = null,
+        bool $strictChoices = false,
     ): Field {
         return new MultipleSelectField(
             name: $name,
@@ -328,6 +335,7 @@ final class FieldTypes
             size: $size,
             attributes: $attributes,
             visibleWhen: $visibleWhen,
+            strictChoices: $strictChoices,
         );
     }
 
@@ -343,6 +351,7 @@ final class FieldTypes
         bool $required = false,
         array $attributes = [],
         ?Condition $visibleWhen = null,
+        bool $strictChoices = false,
     ): Field {
         return new CheckboxGroupField(
             name: $name,
@@ -352,6 +361,7 @@ final class FieldTypes
             required: $required,
             attributes: $attributes,
             visibleWhen: $visibleWhen,
+            strictChoices: $strictChoices,
         );
     }
 

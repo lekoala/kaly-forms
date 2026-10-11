@@ -12,6 +12,7 @@ use Kaly\Forms\Node\ContainerNode;
 use Kaly\Forms\Node\FormNode;
 use Kaly\Forms\Node\InlineLayout;
 use Kaly\Forms\Node\Layout;
+use Kaly\Forms\Render\ControlIds;
 use Kaly\Forms\Render\RendererInterface;
 use Kaly\Forms\Render\RenderProfile;
 
@@ -46,6 +47,8 @@ final class Form implements HtmlRenderable
                 $method,
             ));
         }
+        // Fail at definition time: duplicate ids silently break labels and aria references.
+        ControlIds::assertUnique($name, $children);
         $this->profile = $profile ?? RenderProfile::plain();
     }
 

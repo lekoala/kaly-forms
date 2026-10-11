@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Kaly\Forms\Field;
 
 use Kaly\Forms\Interaction\Condition;
+use Kaly\Forms\Validation\InChoices;
 use Kaly\Forms\Validation\Required;
 
 /**
@@ -25,8 +26,13 @@ final class CheckboxGroupField extends Field
         bool $required = false,
         array $attributes = [],
         ?Condition $visibleWhen = null,
+        bool $strictChoices = false,
     ) {
-        parent::__construct($name, $label, $help, $attributes, $required ? [new Required()] : [], $visibleWhen);
+        $rules = $required ? [new Required()] : [];
+        if ($strictChoices) {
+            $rules[] = InChoices::fromChoices($choices);
+        }
+        parent::__construct($name, $label, $help, $attributes, $rules, $visibleWhen);
         $this->choices = $choices;
     }
 

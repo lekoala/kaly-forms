@@ -71,13 +71,20 @@ final readonly class TemporalRange implements Rule
         );
     }
 
-    /** HH:MM and HH:MM:00 are the same instant: compare with explicit seconds. */
+    /**
+     * HH:MM, HH:MM:00 and HH:MM:00.000 are the same instant: compare with
+     * explicit seconds and milliseconds (12:00:00.1 === 12:00:00.100).
+     */
     private function sortKey(string $value): string
     {
         if ($this->type === self::DATE) {
             return $value;
         }
-        return preg_match('/(^|T)\d{2}:\d{2}$/', $value) === 1 ? $value . ':00' : $value;
+        [$main, $fraction] = explode('.', $value, 2) + [1 => ''];
+        if (preg_match('/(^|T)\d{2}:\d{2}$/', $main) === 1) {
+            $main .= ':00';
+        }
+        return $main . '.' . str_pad($fraction, 3, '0');
     }
 
     private static function isValid(string $type, string $value): bool

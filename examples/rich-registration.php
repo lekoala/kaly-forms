@@ -39,7 +39,14 @@ $form = $forms->create(
         ]),
         new EmailField('email', label: 'Email', required: true),
         new Fieldset(legend: 'Contact', children: [
-            new ChoiceField('country', label: 'Country', choices: ['BE' => 'Belgium', 'FR' => 'France'], required: true),
+            new ChoiceField(
+                'country',
+                label: 'Country',
+                choices: ['BE' => 'Belgium', 'FR' => 'France'],
+                required: true,
+                emptyLabel: 'Choose a country',
+                strictChoices: true,
+            ),
             new TextField(
                 'vatNumber',
                 label: 'VAT number',
@@ -53,7 +60,6 @@ $form = $forms->create(
         new Text('Fields marked as required must be completed.'),
     ],
     actions: [new SubmitAction('save', 'Register')],
-    attributes: ['data-enhance' => 'form'],
 );
 
 $values = [
